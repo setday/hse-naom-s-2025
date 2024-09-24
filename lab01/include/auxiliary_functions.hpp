@@ -1,10 +1,8 @@
-#pragma once
-
 #include <cmath> // Include for std::exp and std::sqrt
 
 namespace ADAII {
 
-double get_s_max(int T, int M_s, int K, double S_0, double sigma) {
+double get_s_max(int T, int M_s, double K, double S_0, double sigma) {
   return std::max(S_0, K) * std::exp(M_s * sigma * std::sqrt(T));
 }
 
@@ -14,10 +12,10 @@ double get_v_max(int T, double theta, int M_v, double eps) {
 
 std::pair<double, double> adjust_s_max_and_v_max(int T, int M_s, int M_v,
                                                  double theta, double eps,
-                                                 int K, double S_0, double V_0,
+                                                 double K, double S_0, double V_0, double sigma,
                                                  int n = 100, int m = 100) {
   // Step 1: Compute the initial estimate for S_max and V_max.
-  double S_max = get_s_max(T, M_s, K, S_0);
+  double S_max = get_s_max(T, M_s, K, S_0, sigma);
   double V_max = get_v_max(T, theta, M_v, eps);
 
   // Step 2: Adjust S_max and V_max s.t. S(0) and V(0) lie exactly on the grid.
