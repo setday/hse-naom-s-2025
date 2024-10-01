@@ -84,7 +84,27 @@ public:
       rhs[mj] = 0;
     }
 
-    update_left_and_right_boundaries(p, rhs);
+    int k = p;
+    // Lower Boundary
+    double const7 = (p - k + 1) * tau;
+    double const8 = K * std::exp((d - r) * const7) / h_s;
+    double const9 = std::exp(-d * const7) * h_s;
+    double const10 = std::exp(-r * const7) * K;
+    for (int j = 0; j <= n; j++) {
+      int oj = get_Q_index(0, j);
+      if (j >= const8) {
+        rhs[oj] = const9 * j - const10;
+      } else {
+        rhs[oj] = 0;
+      }
+    }
+
+    // Right Boundary
+    double const11 = const9 * n - const10;
+    for (int i = 1; i <= m; i++) {
+      int i_n = get_Q_index(i, n);
+      rhs[i_n] = const11;
+    }
   }
 
   /**
@@ -132,7 +152,6 @@ public:
 
   void operator()( double current_time, const double* current_state, double* rhs ) const override {
     solve_linear_system(N, A, rhs, current_state);
-    update_left_and_right_boundaries(current_time, rhs);
   }
 
 private:
@@ -209,45 +228,25 @@ private:
       A[i0][i0] += 1;
     }
 
-    // Upper Boundary
+    // Bottom Boundary
+    for (int j = 0; j <= n; j++) {
+      int oj = get_Q_index(0, j);
+      A[oj][oj] = 1;
+    }
+
+    // Top Boundary
     for (int j = 1; j <= n - 1; j++) {
       int mj = get_Q_index(m, j);
       int mmj = get_Q_index(m - 1, j);
       A[mj][mj] = 1;
       A[mj][mmj] = -1;
     }
-  }
 
-  /**
-   * @brief Updates the boundary conditions for the current time step.
-   * 
-   * Modifies the coefficient matrix and RHS vector based on the
-   * specified boundary conditions for the current time step (k).
-   * 
-   * @param k The current time step (k = p...0).
-   */
-  void update_left_and_right_boundaries(double k, double* rhs) const {
-    // Lower Boundary
-    double const7 = (p - k + 1) * tau;
-    double const8 = K * std::exp((d - r) * const7) / h_s;
-    double const9 = std::exp(-d * const7) * h_s;
-    double const10 = std::exp(-r * const7) * K;
-    for (int j = 0; j <= n; j++) {
-      int oj = get_Q_index(0, j);
-      A[oj][oj] = 1;
-      if (j >= const8) {
-        rhs[oj] = const9 * j - const10;
-      } else {
-        rhs[oj] = 0;
-      }
-    }
 
     // Right Boundary
-    double const11 = const9 * n - const10;
     for (int i = 1; i <= m; i++) {
       int i_n = get_Q_index(i, n);
       A[i_n][i_n] = 1;
-      rhs[i_n] = const11;
     }
   }
 
