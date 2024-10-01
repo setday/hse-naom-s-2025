@@ -10,12 +10,14 @@ namespace ADAII {
 
 /**
  * @brief Solves a system of linear equations using LU decomposition.
- * 
- * This function takes a reference to a SLAE object, extracts the coefficient matrix
- * and the right-hand side vector, and solves for the unknowns using the GNU Scientific
- * Library (GSL). The solution is then stored back in the SLAE object.
- * 
- * @param slae A reference to the SLAE object containing the system of equations.
+ *
+ * This function takes a reference to a SLAE object, extracts the coefficient
+ * matrix and the right-hand side vector, and solves for the unknowns using the
+ * GNU Scientific Library (GSL). The solution is then stored back in the SLAE
+ * object.
+ *
+ * @param slae A reference to the SLAE object containing the system of
+ * equations.
  */
 void solve_linear_system(SLAE &slae) {
   int N = slae.N;

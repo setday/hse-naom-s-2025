@@ -15,10 +15,10 @@ class SLAE {
 public:
   /**
    * @brief Constructs an SLAE object with specified parameters.
-   * 
-   * Initializes the internal matrices and vectors based on the given parameters,
-   * setting up the grid sizes and time step.
-   * 
+   *
+   * Initializes the internal matrices and vectors based on the given
+   * parameters, setting up the grid sizes and time step.
+   *
    * @param p The number of time steps.
    * @param n The number of divisions for the asset price grid (default is 50).
    * @param m The number of divisions for the volatility grid (default is 50).
@@ -39,9 +39,8 @@ public:
    */
   SLAE(int p, int n = 50, int m = 50, double r = 0.01, double d = 0.02,
        double sigma = 0.2, double epsilon = 0.2, double kappa = 0.5,
-       double theta = 0.2, double beta = 1, double rho = 0.5,
-       int K = 100, int M_s = 5, int M_v = 5, double S_0 = 100, double V_0 = 1,
-       int T = 1)
+       double theta = 0.2, double beta = 1, double rho = 0.5, int K = 100,
+       int M_s = 5, int M_v = 5, double S_0 = 100, double V_0 = 1, int T = 1)
       : n(n), m(m), r(r), d(d), sigma(sigma), epsilon(epsilon), kappa(kappa),
         theta(theta), beta(beta), rho(rho), p(p), K(K), S_0(S_0), V_0(V_0) {
     N = (n + 1) * (m + 1);
@@ -62,7 +61,7 @@ public:
 
   /**
    * @brief Destructor to clean up dynamically allocated memory.
-   * 
+   *
    * Frees the memory allocated for the solution vector, RHS vector, and the
    * coefficient matrix.
    */
@@ -76,8 +75,9 @@ public:
   }
 
   /**
-   * @brief Constructs the coefficient matrix (A) and the right-hand side vector (b), BUT only partly!
-   * 
+   * @brief Constructs the coefficient matrix (A) and the right-hand side vector
+   * (b), BUT only partly!
+   *
    * Populates the internal matrix and vector based on the specified
    * parameters and the boundary conditions derived from the problem.
    */
@@ -156,6 +156,28 @@ public:
       A[mj][mmj] = -1;
       b[mj] = 0;
     }
+
+    // Lower Boundary
+    double const8 = K * std::exp((d - r) * tau) / h_s;
+    double const9 = std::exp(-d * tau) * h_s;
+    double const10 = std::exp(-r * tau) * K;
+    for (int j = 0; j <= n; j++) {
+      int oj = get_Q_index(0, j);
+      A[oj][oj] = 1;
+      if (j >= const8) {
+        b[oj] = const9 * j - const10;
+      } else {
+        b[oj] = 0;
+      }
+    }
+
+    // Right Boundary
+    double const11 = const9 * n - const10;
+    for (int i = 1; i <= m; i++) {
+      int i_n = get_Q_index(i, n);
+      A[i_n][i_n] = 1;
+      b[i_n] = const11;
+    }
   }
 
   /**
@@ -181,45 +203,13 @@ public:
   }
 
   /**
-   * @brief Updates the boundary conditions for the current time step.
-   * 
-   * Modifies the coefficient matrix and RHS vector based on the
-   * specified boundary conditions for the current time step (k).
-   * 
-   * @param k The current time step (k = p...0).
-   */
-  void update_left_and_right_boundaries(int k) {
-    // Lower Boundary
-    double const7 = (p - k + 1) * tau;
-    double const8 = K * std::exp((d - r) * const7) / h_s;
-    double const9 = std::exp(-d * const7) * h_s;
-    double const10 = std::exp(-r * const7) * K;
-    for (int j = 0; j <= n; j++) {
-      int oj = get_Q_index(0, j);
-      A[oj][oj] = 1;
-      if (j >= const8) {
-        b[oj] = const9 * j - const10;
-      } else {
-        b[oj] = 0;
-      }
-    }
-
-    // Right Boundary
-    double const11 = const9 * n - const10;
-    for (int i = 1; i <= m; i++) {
-      int i_n = get_Q_index(i, n);
-      A[i_n][i_n] = 1;
-      b[i_n] = const11;
-    }
-  }
-
-  /**
-   * @brief Retrieves the solution for the given initial stock price and volatility.
-   * 
+   * @brief Retrieves the solution for the given initial stock price and
+   * volatility.
+   *
    * Computes the indices corresponding to the current stock price (S_0)
    * and volatility (V_0) in the solution vector and returns the corresponding
    * value from the solution.
-   * 
+   *
    * @return The solution corresponding to the initial conditions.
    */
   double get_the_answer() {
@@ -268,7 +258,7 @@ private:
 
   /**
    * @brief Computes the index in the linear system for given grid coordinates.
-   * 
+   *
    * @param i The index in the volatility dimension.
    * @param j The index in the asset price dimension.
    * @return The corresponding index in the solution vector.

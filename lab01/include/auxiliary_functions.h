@@ -6,7 +6,7 @@ namespace ADAII {
 
 /**
  * @brief Calculates the maximum underlying asset price (S_max).
- * 
+ *
  * @param T The time period.
  * @param M_s The multiplier for volatility.
  * @param K The strike price.
@@ -20,7 +20,7 @@ double get_s_max(int T, int M_s, double K, double S_0, double sigma) {
 
 /**
  * @brief Calculates the maximum volatility (V_max).
- * 
+ *
  * @param T The time period.
  * @param theta Long-term mean level.
  * @param M_v The multiplier for volatility.
@@ -33,7 +33,7 @@ double get_v_max(int T, double theta, int M_v, double eps) {
 
 /**
  * @brief Adjusts S_max and V_max to ensure they lie on the grid.
- * 
+ *
  * @param T The time period.
  * @param M_s The multiplier for S_max calculation.
  * @param M_v The multiplier for V_max calculation.
@@ -75,7 +75,7 @@ std::pair<double, double> get_adjusted_s_max_and_v_max(int T, int M_s, int M_v,
 
 /**
  * @brief Computes the payoff for a given asset price.
- * 
+ *
  * @param S The underlying asset price.
  * @param K The strike price.
  * @return The calculated payoff, which is max(S - K, 0).
