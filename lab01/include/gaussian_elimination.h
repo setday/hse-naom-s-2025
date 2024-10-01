@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix.h>
@@ -111,7 +112,8 @@ void solve_linear_system_GEP(size_t N, double **A, double *x) {
     // Eliminate
     for (size_t j = i + 1; j < N; j++) {
       double factor = A_copy[j][i] / A_copy[i][i];
-      for (size_t k = i; k < N; k++) {
+      A_copy[j][i] = 0;
+      for (size_t k = i + 1; k < N; k++) {
         A_copy[j][k] -= factor * A_copy[i][k];
       }
       x[j] -= factor * x[i];

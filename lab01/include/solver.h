@@ -19,7 +19,7 @@ namespace ADAAI::LAB01
    */
   struct Solver
   {
-    static double solve(size_t with_p_steps = 30)
+    static double solve(size_t with_p_steps = 50)
     {
       double t_start = 0.0;
       double t_end = 1.0;

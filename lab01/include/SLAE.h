@@ -123,9 +123,9 @@ public:
   }
 
   void operator()( double current_time, const double* current_state, double* rhs ) const override {
-//    solve_linear_system_gsl(N, A, rhs, current_state);
-    memcpy(rhs, current_state, N * sizeof(double));
-    solve_linear_system_GEP(N, A, rhs);
+    solve_linear_system_gsl(N, A, rhs, current_state);
+//    memcpy(rhs, current_state, N * sizeof(double));
+//    solve_linear_system_GEP(N, A, rhs);
   }
 
 private:
