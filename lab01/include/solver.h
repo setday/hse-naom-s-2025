@@ -6,7 +6,7 @@
 
 using namespace ADAAI::Integration::Integrator;
 
-namespace ADAAI
+namespace ADAAI::LAB01
 {
 
   /**
@@ -17,19 +17,17 @@ namespace ADAAI
    * conditions, and iteratively solving the linear system using a specified
    * number of time steps.
    */
-  class Solver
+  struct Solver
   {
-  public:
-    /**
-     * @brief Constructs a Solver instance with a specified number of time steps.
-     *
-     * @param p The number of time steps (default is 30).
-     */
-    Solver(int p = 30) : p(p) {}
-
-    double solve()
+    static double solve(size_t with_p_steps = 30)
     {
-      SLAE slae = SLAE(p);
+      double t_start = 0.0;
+      double t_end = 1.0;
+      double t_tau = (t_end - t_start) / (double) with_p_steps;
+
+      OptionEnvironment oe = OptionEnvironment(t_end, t_tau);
+      SLAE slae = SLAE(&oe);
+
       auto *b = new double[slae.N];
       slae.set_initial_RHS(b);
 
@@ -37,12 +35,9 @@ namespace ADAAI
       auto observer = BlindObserver<SLAE>();
 
       auto integrator = ODE_Integrator<SLAE, Stepper::OverrideTimeStepper<SLAE>, BlindObserver<SLAE>>(&stepper, &observer);
-      integrator(b, b, 0, 30, 1);
+      integrator(b, b, t_start, t_end, t_tau);
       return slae.get_the_answer(b);
     }
-
-  private:
-    int p; ///< The number of time steps for the solver.
   };
 
 } // namespace ADAAI

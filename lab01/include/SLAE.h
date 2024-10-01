@@ -7,8 +7,9 @@
 
 #include "auxiliary_functions.h"
 #include "gaussian_elimination.h"
+#include "option_environment.h"
 
-namespace ADAAI {
+namespace ADAAI::LAB01 {
 class SLAE : Integration::Integrator::RHS {
   /*
   This class defines a system of linear algebraic equations (Ax = b) that will
@@ -24,7 +25,8 @@ public:
    * Initializes the internal matrices and vectors based on the given
    * parameters, setting up the grid sizes and time step.
    *
-   * @param p The number of time steps.
+   * @param T_max The total time for the simulation (default is 1.0).
+   * @param T_tau The time step size
    * @param n The number of divisions for the asset price grid (default is 50).
    * @param m The number of divisions for the volatility grid (default is 50).
    * @param r The risk-free rate (default is 0.01).
@@ -40,26 +42,15 @@ public:
    * @param M_v The multiplier for V_max (default is 5).
    * @param S_0 The initial stock price (default is 100).
    * @param V_0 The initial volatility (default is 1).
-   * @param T The total time for the simulation (default is 1).
    */
-  explicit SLAE(int p, int n = 50, int m = 50, double r = 0.01, double d = 0.02,
-       double sigma = 0.2, double epsilon = 0.2, double kappa = 0.5,
-       double theta = 0.2, double beta = 1, double rho = 0.5, int K = 100,
-       int M_s = 5, int M_v = 5, double S_0 = 100, double V_0 = 1, int T = 1)
-      : n(n), m(m), r(r), d(d), sigma(sigma), epsilon(epsilon), kappa(kappa),
-        theta(theta), beta(beta), rho(rho), p(p), K(K), S_0(S_0), V_0(V_0) {
-    N = (n + 1) * (m + 1);
+  explicit SLAE(OptionEnvironment *option_environment)
+    : m_oe(option_environment), n(option_environment->n), m(option_environment->m) {
+    N = (option_environment->n + 1) * (option_environment->m + 1);
 
     A = new double *[N];
     for (size_t i = 0; i < N; ++i) {
       A[i] = new double[N]();
     }
-
-    tau = static_cast<double>(T) / p; // time step
-    auto [S_max, V_max] = get_adjusted_s_max_and_v_max(
-        T, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m);
-    h_s = S_max / n;
-    h_v = V_max / m;
 
     construct_SLAE();
   }
@@ -74,9 +65,8 @@ public:
     }
     for (int i = 1; i <= m - 1; i++) {
       for (int j = 1; j <= n - 1; j++) {
-        double S_j = h_s * j;
         int ij = get_Q_index(i, j);
-        rhs[ij] = payoff_function(S_j, K);
+        rhs[ij] = m_oe->get_payoff_for_S_j(j);
       }
     }
     for (int j = 1; j <= n - 1; j++) {
@@ -84,23 +74,18 @@ public:
       rhs[mj] = 0;
     }
 
-    int k = p;
     // Lower Boundary
-    double const7 = (p - k + 1) * tau;
-    double const8 = K * std::exp((d - r) * const7) / h_s;
-    double const9 = std::exp(-d * const7) * h_s;
-    double const10 = std::exp(-r * const7) * K;
+    double const8 = m_oe->K * std::exp((m_oe->d - m_oe->r) * m_oe->tau) / m_oe->h_s_max;
+    double const9 = std::exp(-m_oe->d * m_oe->tau) * m_oe->h_s_max;
+    double const10 = std::exp(-m_oe->r * m_oe->tau) * m_oe->K;
+    double const11;
     for (int j = 0; j <= n; j++) {
       int oj = get_Q_index(0, j);
-      if (j >= const8) {
-        rhs[oj] = const9 * j - const10;
-      } else {
-        rhs[oj] = 0;
-      }
+      const11 = const9 * j - const10;
+      rhs[oj] = std::max(const11, 0.0);
     }
 
     // Right Boundary
-    double const11 = const9 * n - const10;
     for (int i = 1; i <= m; i++) {
       int i_n = get_Q_index(i, n);
       rhs[i_n] = const11;
@@ -117,22 +102,8 @@ public:
    * @return The solution corresponding to the initial conditions.
    */
   double get_the_answer(double const *rhs) {
-    int i = 0;
-    int j = 0;
-    double S_i = 0;
-    double V_j = 0;
-    for (; i <= m; i++) {
-      if (S_i >= S_0) {
-        break;
-      }
-      S_i += h_s;
-    }
-    for (; j <= n; j++) {
-      if (V_j >= V_0) {
-        break;
-      }
-      V_j += h_v;
-    }
+    int i = m_oe->get_closest_S_index(m_oe->S_0);
+    int j = m_oe->get_closest_V_index(m_oe->V_0);
 
     return rhs[get_Q_index(i, j)];
   }
@@ -168,10 +139,12 @@ private:
     // We define many constants which don't have any sense, but
     // they are used many times in different places. It is only a matter of
     // optimization.
-    double const1 = tau * (r - d) / 2;
-    double const2 = tau * sigma * sigma / 2 * h_v * std::pow(h_s, 2 * beta - 2);
-    double const4 = tau * epsilon * epsilon / (2 * h_v);
-    double const5 = tau * sigma * epsilon * rho * std::pow(h_s, beta - 1) / 4;
+    double const1 = m_oe->tau * (m_oe->r - m_oe->d) / 2;
+    double const2 = m_oe->tau * m_oe->sigma * m_oe->sigma / 2 * m_oe->h_v_max *
+        std::pow(m_oe->h_s_max, 2 * m_oe->beta - 2);
+    double const4 = m_oe->tau * m_oe->epsilon * m_oe->epsilon / (2 * m_oe->h_v_max);
+    double const5 = m_oe->tau * m_oe->sigma * m_oe->epsilon * m_oe->rho *
+        std::pow(m_oe->h_s_max, m_oe->beta - 1) / 4;
 
     for (int i = 1; i <= m - 1; i++) {
 
@@ -197,12 +170,12 @@ private:
         A[ij][ijp] -= temp_const;
         A[ij][ijm] += temp_const;
 
-        temp_const = const3 * std::pow(j, 2 * beta - 2) * j * j;
+        temp_const = const3 * std::pow(j, 2 * m_oe->beta - 2) * j * j;
         A[ij][ijp] -= temp_const;
         A[ij][ij] += 2 * temp_const;
         A[ij][ijm] -= temp_const;
 
-        temp_const = tau * (kappa / h_v - i) / 2;
+        temp_const = m_oe->tau * (m_oe->kappa / m_oe->h_v_max - i) / 2;
         A[ipj][ij] -= temp_const;
         A[imj][ij] += temp_const;
 
@@ -211,13 +184,13 @@ private:
         A[ij][ij] += 2 * temp_const;
         A[imj][ipj] -= temp_const;
 
-        temp_const = const6 * std::pow(j, beta);
+        temp_const = const6 * std::pow(j, m_oe->beta);
         A[ipj][ipj] -= temp_const;
         A[ipj][ijm] += temp_const;
         A[imj][ijp] += temp_const;
         A[imj][imj] -= temp_const;
 
-        A[ij][ij] += tau * r;
+        A[ij][ij] += m_oe->tau * m_oe->r;
       }
     }
 
@@ -225,7 +198,7 @@ private:
     // Left Boundary
     for (int i = 0; i <= m; i++) {
       int i0 = get_Q_index(i, 0);
-      A[i0][i0] += 1;
+      A[i0][i0] = 1;
     }
 
     // Bottom Boundary
@@ -245,33 +218,19 @@ private:
 
     // Right Boundary
     for (int i = 1; i <= m; i++) {
-      int i_n = get_Q_index(i, n);
-      A[i_n][i_n] = 1;
+      int in = get_Q_index(i, n);
+      A[in][in] = 1;
     }
   }
 
 public:
   double **A; ///< Coefficient matrix. Size = NxN
-  size_t N;      ///< Total number of equations (N = (n + 1) * (m + 1))
+  size_t N;   ///< Total number of equations (N = (n + 1) * (m + 1))
 
 private:
-  int n;          ///< The number of divisions for S_max grid
-  int m;          ///< The number of divisions for V_max grid
-  double r;       ///< Risk-free rate
-  double d;       ///< Dividend yield
-  double sigma;   ///< Volatility
-  double epsilon; ///< Volatility of volatility
-  double kappa;   ///< Mean reversion speed
-  double theta;   ///< Long-term mean level
-  double beta;    ///< Sensitivity to market movements
-  double h_s;     ///< Step size in asset price
-  double h_v;     ///< Step size in volatility
-  double tau;     ///< Time step size
-  double rho;     ///< Correlation with the market
-  int p;          ///< Maximum time step index (p)
-  int K;          ///< Strike price
-  double S_0;     ///< Initial stock price
-  double V_0;     ///< Initial volatility
+  OptionEnvironment *m_oe; ///< Pointer to the OptionEnvironment object
+  int n;                   ///< Number of divisions for the asset price grid
+  int m;                   ///< Number of divisions for the volatility grid
 
   /**
    * @brief Computes the index in the linear system for given grid coordinates.

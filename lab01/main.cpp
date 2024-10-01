@@ -2,7 +2,6 @@
 #include <iostream>
 
 int main() {
-  ADAAI::Solver solver;
-  double px = solver.solve();
+  double px = ADAAI::LAB01::Solver::solve();
   std::cout << "Px of the European Call Option: " << px << '\n';
 }

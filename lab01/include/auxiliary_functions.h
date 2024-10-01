@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace ADAAI {
+namespace ADAAI::LAB01 {
 
 /**
  * @brief Calculates the maximum underlying asset price (S_max).
@@ -14,7 +14,7 @@ namespace ADAAI {
  * @param sigma The volatility of the asset.
  * @return The calculated maximum asset price (S_max).
  */
-double get_s_max(int T, int M_s, double K, double S_0, double sigma) {
+double get_s_max(double T, int M_s, double K, double S_0, double sigma) {
   return std::max(S_0, K) * std::exp(M_s * sigma * std::sqrt(T));
 }
 
@@ -27,7 +27,7 @@ double get_s_max(int T, int M_s, double K, double S_0, double sigma) {
  * @param eps Volatility of volatility.
  * @return The calculated maximum volatility (V_max).
  */
-double get_v_max(int T, double theta, int M_v, double eps) {
+double get_v_max(double T, double theta, int M_v, double eps) {
   return std::max(1.0, theta) * std::exp(M_v * eps * std::sqrt(T));
 }
 
@@ -47,7 +47,7 @@ double get_v_max(int T, double theta, int M_v, double eps) {
  * @param m The number of divisions for V_max grid.
  * @return A pair containing the adjusted S_max and V_max.
  */
-std::pair<double, double> get_adjusted_s_max_and_v_max(int T, int M_s, int M_v,
+std::pair<double, double> get_adjusted_s_max_and_v_max(double T, int M_s, int M_v,
                                                        double theta, double eps,
                                                        double K, double S_0,
                                                        double V_0, double sigma,
