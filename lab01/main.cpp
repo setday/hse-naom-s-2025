@@ -1,6 +1,8 @@
-#include "include/SLAE.hpp"
+#include "include/solver.h"
+#include <iostream>
 
 int main() {
-  // ADAII::SLAE slae = ADAII::SLAE(...);
-  // slae.construct_SLAE();
+  ADAII::Solver solver;
+  double px = solver.solve();
+  std::cout << "Px of the European Call Option: " << px << '\n';
 }
