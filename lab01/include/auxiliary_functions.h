@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace ADAII {
+namespace ADAAI {
 
 /**
  * @brief Calculates the maximum underlying asset price (S_max).
@@ -81,4 +81,4 @@ std::pair<double, double> get_adjusted_s_max_and_v_max(int T, int M_s, int M_v,
  * @return The calculated payoff, which is max(S - K, 0).
  */
 double payoff_function(double S, double K) { return std::max(S - K, 0.0); }
-} // namespace ADAII
+} // namespace ADAAI

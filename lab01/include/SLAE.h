@@ -1,10 +1,15 @@
 #pragma once
-#include "auxiliary_functions.h"
+
 #include <cmath>
 #include <iostream>
 
-namespace ADAII {
-class SLAE {
+#include "../../previous_labs/intergartor/RHS.hpp"
+
+#include "auxiliary_functions.h"
+#include "gaussian_elimination.h"
+
+namespace ADAAI {
+class SLAE : Integration::Integrator::RHS {
   /*
   This class defines a system of linear algebraic equations (Ax = b) that will
   be solved using Gaussian elimination. The system arises from the numerical
@@ -37,7 +42,7 @@ public:
    * @param V_0 The initial volatility (default is 1).
    * @param T The total time for the simulation (default is 1).
    */
-  SLAE(int p, int n = 50, int m = 50, double r = 0.01, double d = 0.02,
+  explicit SLAE(int p, int n = 50, int m = 50, double r = 0.01, double d = 0.02,
        double sigma = 0.2, double epsilon = 0.2, double kappa = 0.5,
        double theta = 0.2, double beta = 1, double rho = 0.5, int K = 100,
        int M_s = 5, int M_v = 5, double S_0 = 100, double V_0 = 1, int T = 1)
@@ -45,10 +50,8 @@ public:
         theta(theta), beta(beta), rho(rho), p(p), K(K), S_0(S_0), V_0(V_0) {
     N = (n + 1) * (m + 1);
 
-    x = new double[N]();
-    b = new double[N]();
     A = new double *[N];
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       A[i] = new double[N]();
     }
 
@@ -57,6 +60,61 @@ public:
         T, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m);
     h_s = S_max / n;
     h_v = V_max / m;
+
+    construct_SLAE();
+  }
+
+  /**
+   * @brief Sets the initial conditions for the right-hand side vector (b).
+   */
+  void set_initial_RHS(double* rhs) { // utilize initial condition @t=T
+    for (int i = 0; i <= m; i++) {
+      int i0 = get_Q_index(i, 0);
+      rhs[i0] = 0;
+    }
+    for (int i = 1; i <= m - 1; i++) {
+      for (int j = 1; j <= n - 1; j++) {
+        double S_j = h_s * j;
+        int ij = get_Q_index(i, j);
+        rhs[ij] = payoff_function(S_j, K);
+      }
+    }
+    for (int j = 1; j <= n - 1; j++) {
+      int mj = get_Q_index(m, j);
+      rhs[mj] = 0;
+    }
+
+    update_left_and_right_boundaries(p, rhs);
+  }
+
+  /**
+   * @brief Retrieves the solution for the given initial stock price and volatility.
+   *
+   * Computes the indices corresponding to the current stock price (S_0)
+   * and volatility (V_0) in the solution vector and returns the corresponding
+   * value from the solution.
+   *
+   * @return The solution corresponding to the initial conditions.
+   */
+  double get_the_answer(double const *rhs) {
+    int i = 0;
+    int j = 0;
+    double S_i = 0;
+    double V_j = 0;
+    for (; i <= m; i++) {
+      if (S_i >= S_0) {
+        break;
+      }
+      S_i += h_s;
+    }
+    for (; j <= n; j++) {
+      if (V_j >= V_0) {
+        break;
+      }
+      V_j += h_v;
+    }
+
+    return rhs[get_Q_index(i, j)];
   }
 
   /**
@@ -66,14 +124,18 @@ public:
    * coefficient matrix.
    */
   ~SLAE() {
-    delete[] x;
-    delete[] b;
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       delete[] A[i];
     }
     delete[] A;
   }
 
+  void operator()( double current_time, const double* current_state, double* rhs ) const override {
+    solve_linear_system(N, A, rhs, current_state);
+    update_left_and_right_boundaries(current_time, rhs);
+  }
+
+private:
   /**
    * @brief Constructs the coefficient matrix (A) and the right-hand side vector
    * (b), BUT only partly!
@@ -107,10 +169,10 @@ public:
         int ijp = get_Q_index(i, j + 1);
         int imj = get_Q_index(i - 1, j);
         int ijm = get_Q_index(i, j - 1);
-        int ipjp = get_Q_index(i + 1, j + 1);
-        int imjm = get_Q_index(i - 1, j - 1);
-        int ipjm = get_Q_index(i + 1, j - 1);
-        int imjp = get_Q_index(i - 1, j + 1);
+//        int ipjp = get_Q_index(i + 1, j + 1);
+//        int imjm = get_Q_index(i - 1, j - 1);
+//        int ipjm = get_Q_index(i + 1, j - 1);
+//        int imjp = get_Q_index(i - 1, j + 1);
 
         double temp_const = const1 * j;
         A[ij][ijp] -= temp_const;
@@ -145,7 +207,6 @@ public:
     for (int i = 0; i <= m; i++) {
       int i0 = get_Q_index(i, 0);
       A[i0][i0] += 1;
-      b[i0] = 0;
     }
 
     // Upper Boundary
@@ -154,20 +215,30 @@ public:
       int mmj = get_Q_index(m - 1, j);
       A[mj][mj] = 1;
       A[mj][mmj] = -1;
-      b[mj] = 0;
     }
+  }
 
+  /**
+   * @brief Updates the boundary conditions for the current time step.
+   * 
+   * Modifies the coefficient matrix and RHS vector based on the
+   * specified boundary conditions for the current time step (k).
+   * 
+   * @param k The current time step (k = p...0).
+   */
+  void update_left_and_right_boundaries(double k, double* rhs) const {
     // Lower Boundary
-    double const8 = K * std::exp((d - r) * tau) / h_s;
-    double const9 = std::exp(-d * tau) * h_s;
-    double const10 = std::exp(-r * tau) * K;
+    double const7 = (p - k + 1) * tau;
+    double const8 = K * std::exp((d - r) * const7) / h_s;
+    double const9 = std::exp(-d * const7) * h_s;
+    double const10 = std::exp(-r * const7) * K;
     for (int j = 0; j <= n; j++) {
       int oj = get_Q_index(0, j);
       A[oj][oj] = 1;
       if (j >= const8) {
-        b[oj] = const9 * j - const10;
+        rhs[oj] = const9 * j - const10;
       } else {
-        b[oj] = 0;
+        rhs[oj] = 0;
       }
     }
 
@@ -176,66 +247,13 @@ public:
     for (int i = 1; i <= m; i++) {
       int i_n = get_Q_index(i, n);
       A[i_n][i_n] = 1;
-      b[i_n] = const11;
+      rhs[i_n] = const11;
     }
   }
 
-  /**
-   * @brief Updates the right-hand side vector (b) with the current solution.
-   */
-  void update_RHS() {
-    for (int i = 0; i < N; i++) { // Beware: off-by-one error?
-      b[i] = x[i];
-    }
-  }
-
-  /**
-   * @brief Sets the initial conditions for the right-hand side vector (b).
-   */
-  void set_initial_RHS() { // utilize initial condition @t=T
-    for (int i = 1; i <= m - 1; i++) {
-      for (int j = 1; j <= n - 1; j++) {
-        double S_j = h_s * j;
-        int ij = get_Q_index(i, j);
-        b[ij] = payoff_function(S_j, K);
-      }
-    }
-  }
-
-  /**
-   * @brief Retrieves the solution for the given initial stock price and
-   * volatility.
-   *
-   * Computes the indices corresponding to the current stock price (S_0)
-   * and volatility (V_0) in the solution vector and returns the corresponding
-   * value from the solution.
-   *
-   * @return The solution corresponding to the initial conditions.
-   */
-  double get_the_answer() {
-    int i = 0;
-    int j = 0;
-    double S_i = 0;
-    double V_j = 0;
-    for (; i <= m; i++) {
-      if (S_i >= S_0) {
-        break;
-      }
-      S_i += h_s;
-    }
-    for (; j <= n; j++) {
-      if (V_j >= V_0) {
-        break;
-      }
-      V_j += h_v;
-    }
-
-    return x[get_Q_index(i, j)];
-  }
-  double *x;  ///< Solution vector. Size = N
-  double *b;  ///< RHS vector. Size = N
+public:
   double **A; ///< Coefficient matrix. Size = NxN
-  int N;      ///< Total number of equations (N = (n + 1) * (m + 1))
+  size_t N;      ///< Total number of equations (N = (n + 1) * (m + 1))
 
 private:
   int n;          ///< The number of divisions for S_max grid
@@ -263,6 +281,6 @@ private:
    * @param j The index in the asset price dimension.
    * @return The corresponding index in the solution vector.
    */
-  int get_Q_index(int i, int j) const { return i * (n + 1) + j; }
+  [[nodiscard]] int get_Q_index(int i, int j) const { return i * (n + 1) + j; }
 };
-} // namespace ADAII
+} // namespace ADAAI

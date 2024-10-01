@@ -1,12 +1,12 @@
 #pragma once
 
-#include "SLAE.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
-#include <stdio.h>
 
-namespace ADAII {
+#include "SLAE.h"
+
+namespace ADAAI {
 
 /**
  * @brief Solves a system of linear equations using LU decomposition.
@@ -19,8 +19,7 @@ namespace ADAII {
  * @param slae A reference to the SLAE object containing the system of
  * equations.
  */
-void solve_linear_system(SLAE &slae) {
-  int N = slae.N;
+void solve_linear_system(size_t N, double **A, double *x, const double *b) {
   // Create GSL matrix and vectors
   gsl_matrix *gsl_A = gsl_matrix_alloc(N, N);
   gsl_vector *gsl_b = gsl_vector_alloc(N);
@@ -29,17 +28,17 @@ void solve_linear_system(SLAE &slae) {
   // Fill GSL matrix A
   for (size_t i = 0; i < N; i++) {
     for (size_t j = 0; j < N; j++) {
-      gsl_matrix_set(gsl_A, i, j, slae.A[i][j]);
+      gsl_matrix_set(gsl_A, i, j, A[i][j]);
     }
   }
 
   // Fill GSL vector b
   for (size_t i = 0; i < N; i++) {
-    gsl_vector_set(gsl_b, i, slae.b[i]);
+    gsl_vector_set(gsl_b, i, b[i]);
   }
 
   // Decompose the matrix
-  gsl_permutation *p = gsl_permutation_alloc(N);
+  gsl_permutation *p = gsl_permutation_alloc((int)N);
   int signum;
   gsl_linalg_LU_decomp(gsl_A, p, &signum);
 
@@ -48,7 +47,7 @@ void solve_linear_system(SLAE &slae) {
 
   // Fill in the solution vector x
   for (size_t i = 0; i < N; i++) {
-    slae.x[i] = gsl_vector_get(gsl_x, i);
+    x[i] = gsl_vector_get(gsl_x, i);
   }
 
   // Free allocated memory
@@ -57,4 +56,4 @@ void solve_linear_system(SLAE &slae) {
   gsl_vector_free(gsl_x);
   gsl_matrix_free(gsl_A);
 }
-} // namespace ADAII
+} // namespace ADAAI

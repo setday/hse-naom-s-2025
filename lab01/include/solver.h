@@ -2,41 +2,47 @@
 
 #include "SLAE.h"
 #include "gaussian_elimination.h"
+#include "../../previous_labs/intergartor/Interator.hpp"
 
-namespace ADAII {
+using namespace ADAAI::Integration::Integrator;
 
-/**
- * @brief A class that represents a solver for a system of linear algebraic
- * equations (SLAE).
- *
- * This class is responsible for constructing the SLAE, setting initial
- * conditions, and iteratively solving the linear system using a specified
- * number of time steps.
- */
-class Solver {
-public:
+namespace ADAAI
+{
+
   /**
-   * @brief Constructs a Solver instance with a specified number of time steps.
+   * @brief A class that represents a solver for a system of linear algebraic
+   * equations (SLAE).
    *
-   * @param p The number of time steps (default is 30).
+   * This class is responsible for constructing the SLAE, setting initial
+   * conditions, and iteratively solving the linear system using a specified
+   * number of time steps.
    */
-  Solver(int p = 30) : p(p) {}
+  class Solver
+  {
+  public:
+    /**
+     * @brief Constructs a Solver instance with a specified number of time steps.
+     *
+     * @param p The number of time steps (default is 30).
+     */
+    Solver(int p = 30) : p(p) {}
 
-  double solve() {
-    SLAE slae = SLAE(p);
-    slae.construct_SLAE();
-    slae.set_initial_RHS();
+    double solve()
+    {
+      SLAE slae = SLAE(p);
+      auto *b = new double[slae.N];
+      slae.set_initial_RHS(b);
 
-    for (int step = p; step >= 0; step--) {
-      std::cout << "step: " << p - step << "/" << p << '\n';
-      solve_linear_system(slae);
-      slae.update_RHS();
+      auto stepper = Stepper::OverrideTimeStepper(&slae);
+      auto observer = BlindObserver<SLAE>();
+
+      auto integrator = ODE_Integrator<SLAE, Stepper::OverrideTimeStepper<SLAE>, BlindObserver<SLAE>>(&stepper, &observer);
+      integrator(b, b, 0, 30, 1);
+      return slae.get_the_answer(b);
     }
-    return slae.get_the_answer();
-  }
 
-private:
-  int p; ///< The number of time steps for the solver.
-};
+  private:
+    int p; ///< The number of time steps for the solver.
+  };
 
-} // namespace ADAII
+} // namespace ADAAI
