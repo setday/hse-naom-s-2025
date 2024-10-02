@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstring>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 
 #include "../../previous_labs/intergartor/RHS.hpp"
@@ -45,7 +45,8 @@ public:
    * @param V_0 The initial volatility (default is 1).
    */
   explicit SLAE(OptionEnvironment *option_environment)
-    : m_oe(option_environment), n(option_environment->n), m(option_environment->m) {
+      : m_oe(option_environment), n(option_environment->n),
+        m(option_environment->m) {
     N = (option_environment->n + 1) * (option_environment->m + 1);
 
     A = new double *[N];
@@ -59,7 +60,7 @@ public:
   /**
    * @brief Sets the initial conditions for the right-hand side vector (b).
    */
-  void set_initial_RHS(double* rhs) { // utilize initial condition @t=T
+  void set_initial_RHS(double *rhs) { // utilize initial condition @t=T
     for (int i = 0; i <= m; i++) {
       int i0 = get_Q_index(i, 0);
       rhs[i0] = 0;
@@ -76,14 +77,16 @@ public:
     }
 
     // Lower Boundary
-    double const8 = m_oe->K * std::exp((m_oe->d - m_oe->r) * m_oe->tau) / m_oe->h_s_max;
+    double const8 =
+        m_oe->K * std::exp((m_oe->d - m_oe->r) * m_oe->tau) / m_oe->h_s_max;
     double const9 = std::exp(-m_oe->d * m_oe->tau) * m_oe->h_s_max;
     double const10 = std::exp(-m_oe->r * m_oe->tau) * m_oe->K;
-    double const11;
+    double const11 = const9 * n - const10;
+    ;
+
     for (int j = 0; j <= n; j++) {
       int oj = get_Q_index(0, j);
-      const11 = const9 * j - const10;
-      rhs[oj] = std::max(const11, 0.0);
+      rhs[oj] = std::max(const9 * j - const10, 0.0);
     }
 
     // Right Boundary
@@ -94,7 +97,8 @@ public:
   }
 
   /**
-   * @brief Retrieves the solution for the given initial stock price and volatility.
+   * @brief Retrieves the solution for the given initial stock price and
+   * volatility.
    *
    * Computes the indices corresponding to the current stock price (S_0)
    * and volatility (V_0) in the solution vector and returns the corresponding
@@ -122,18 +126,18 @@ public:
     delete[] A;
   }
 
-  void operator()( double current_time, const double* current_state, double* rhs ) const override {
+  void operator()(double current_time, const double *current_state,
+                  double *rhs) const override {
     solve_linear_system_gsl(N, A, rhs, current_state);
-//    memcpy(rhs, current_state, N * sizeof(double));
-//    solve_linear_system_GEP(N, A, rhs);
+    //    memcpy(rhs, current_state, N * sizeof(double));
+    //    solve_linear_system_GEP(N, A, rhs);
   }
 
 private:
   /**
-   * @brief Constructs the coefficient matrix (A) and the right-hand side vector
-   * (b), BUT only partly!
+   * @brief Constructs the coefficient matrix (A).
    *
-   * Populates the internal matrix and vector based on the specified
+   * Populates the internal matrix based on the specified
    * parameters and the boundary conditions derived from the problem.
    */
   void construct_SLAE() {
@@ -144,10 +148,11 @@ private:
     // optimization.
     double const1 = m_oe->tau * (m_oe->r - m_oe->d) / 2;
     double const2 = m_oe->tau * m_oe->sigma * m_oe->sigma / 2 * m_oe->h_v_max *
-        std::pow(m_oe->h_s_max, 2 * m_oe->beta - 2);
-    double const4 = m_oe->tau * m_oe->epsilon * m_oe->epsilon / (2 * m_oe->h_v_max);
+                    std::pow(m_oe->h_s_max, 2 * m_oe->beta - 2);
+    double const4 =
+        m_oe->tau * m_oe->epsilon * m_oe->epsilon / (2 * m_oe->h_v_max);
     double const5 = m_oe->tau * m_oe->sigma * m_oe->epsilon * m_oe->rho *
-        std::pow(m_oe->h_s_max, m_oe->beta - 1) / 4;
+                    std::pow(m_oe->h_s_max, m_oe->beta - 1) / 4;
 
     for (int i = 1; i <= m - 1; i++) {
 
@@ -156,7 +161,7 @@ private:
 
       for (int j = 1; j <= n - 1; j++) {
         int ij = get_Q_index(i, j);
-        // The first term in LSH
+        // The first term in LHS
         A[ij][ij] += 1;
 
         // The second term in LHS (operator L: convective + diffusive terms)
@@ -164,10 +169,10 @@ private:
         int ijp = get_Q_index(i, j + 1);
         int imj = get_Q_index(i - 1, j);
         int ijm = get_Q_index(i, j - 1);
-//        int ipjp = get_Q_index(i + 1, j + 1);
-//        int imjm = get_Q_index(i - 1, j - 1);
-//        int ipjm = get_Q_index(i + 1, j - 1);
-//        int imjp = get_Q_index(i - 1, j + 1);
+        // int ipjp = get_Q_index(i + 1, j + 1);
+        // int imjm = get_Q_index(i - 1, j - 1);
+        // int ipjm = get_Q_index(i + 1, j - 1);
+        // int imjp = get_Q_index(i - 1, j + 1);
 
         double temp_const = const1 * j;
         A[ij][ijp] -= temp_const;
@@ -218,7 +223,6 @@ private:
       A[mj][mmj] = -1;
     }
 
-
     // Right Boundary
     for (int i = 1; i <= m; i++) {
       int in = get_Q_index(i, n);
@@ -244,4 +248,4 @@ private:
    */
   [[nodiscard]] int get_Q_index(int i, int j) const { return i * (n + 1) + j; }
 };
-} // namespace ADAAI
+} // namespace ADAAI::LAB01

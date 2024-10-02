@@ -63,7 +63,8 @@ void solve_linear_system_gsl(size_t N, double **A, double *x, const double *b) {
 }
 
 /**
- * @brief Solves a system of linear equations using GaussElimPivoting without GSL.
+ * @brief Solves a system of linear equations using GaussElimPivoting without
+ * GSL.
  *
  * This function takes a reference to a SLAE object, extracts the coefficient
  * matrix and the right-hand side vector, and solves for the unknowns using the
@@ -89,7 +90,7 @@ void solve_linear_system_GEP(size_t N, double **A, double *x) {
     memcpy(A_copy[i], A[i], N * sizeof(double));
   }
 
-  auto *p = new size_t [N];
+  auto *p = new size_t[N];
   for (size_t i = 0; i < N; i++) {
     p[i] = i;
   }

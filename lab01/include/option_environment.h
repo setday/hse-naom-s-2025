@@ -6,8 +6,8 @@
 
 namespace ADAAI::LAB01 {
 struct OptionEnvironment {
-  int n;          ///< The number of divisions for S_max grid
-  int m;          ///< The number of divisions for V_max grid
+  int n; ///< The number of divisions for S_max grid
+  int m; ///< The number of divisions for V_max grid
 
   double r;       ///< Risk-free rate
   double d;       ///< Dividend yield
@@ -26,7 +26,6 @@ struct OptionEnvironment {
   double V_max;   ///< Maximum volatility
   double h_s_max; ///< Step size in asset price
   double h_v_max; ///< Step size in volatility
-
 
   /**
    * @brief Constructs an OptionEnvironment object with specified parameters.
@@ -49,17 +48,19 @@ struct OptionEnvironment {
    * @param S_0 The initial stock price (default is 100).
    * @param V_0 The initial volatility (default is 1).
    */
-  explicit OptionEnvironment(double T_max, double T_tau, int n = 50, int m = 50, double r = 0.01,
-                double d = 0.02, double sigma = 0.2, double epsilon = 0.2,
-                double kappa = 0.5, double theta = 0.2, double beta = 1,
-                double rho = 0.5, int K = 100, int M_s = 5, int M_v = 5,
-                double S_0 = 100, double V_0 = 1)
+  explicit OptionEnvironment(double T_max, double T_tau, int n = 50, int m = 50,
+                             double r = 0.01, double d = 0.02,
+                             double sigma = 0.2, double epsilon = 0.2,
+                             double kappa = 0.5, double theta = 0.2,
+                             double beta = 1, double rho = 0.5, int K = 100,
+                             int M_s = 5, int M_v = 5, double S_0 = 100,
+                             double V_0 = 1)
       : n(n), m(m), r(r), d(d), sigma(sigma), epsilon(epsilon), kappa(kappa),
-        theta(theta), beta(beta), tau(T_tau), rho(rho), K(K), S_0(S_0), V_0(V_0) {
+        theta(theta), beta(beta), tau(T_tau), rho(rho), K(K), S_0(S_0),
+        V_0(V_0) {
 
-    std::tie( S_max, V_max ) = get_adjusted_s_max_and_v_max(
-        T_max, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m
-    );
+    std::tie(S_max, V_max) = get_adjusted_s_max_and_v_max(
+        T_max, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m);
 
     h_s_max = S_max / n;
     h_v_max = V_max / m;
@@ -77,4 +78,4 @@ struct OptionEnvironment {
     return payoff_function(h_s_max * j, K);
   }
 };
-} // namespace ADAAI
+} // namespace ADAAI::LAB01

@@ -47,11 +47,10 @@ double get_v_max(double T, double theta, int M_v, double eps) {
  * @param m The number of divisions for V_max grid.
  * @return A pair containing the adjusted S_max and V_max.
  */
-std::pair<double, double> get_adjusted_s_max_and_v_max(double T, int M_s, int M_v,
-                                                       double theta, double eps,
-                                                       double K, double S_0,
-                                                       double V_0, double sigma,
-                                                       int n, int m) {
+std::pair<double, double>
+get_adjusted_s_max_and_v_max(double T, int M_s, int M_v, double theta,
+                             double eps, double K, double S_0, double V_0,
+                             double sigma, int n, int m) {
   // Step 1: Compute the initial estimate for S_max and V_max.
   double S_max = get_s_max(T, M_s, K, S_0, sigma);
   double V_max = get_v_max(T, theta, M_v, eps);
@@ -81,4 +80,4 @@ std::pair<double, double> get_adjusted_s_max_and_v_max(double T, int M_s, int M_
  * @return The calculated payoff, which is max(S - K, 0).
  */
 double payoff_function(double S, double K) { return std::max(S - K, 0.0); }
-} // namespace ADAAI
+} // namespace ADAAI::LAB01
