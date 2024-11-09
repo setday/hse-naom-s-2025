@@ -27,6 +27,8 @@ struct OptionEnvironment {
   double h_s_max; ///< Step size in asset price
   double h_v_max; ///< Step size in volatility
 
+  double T_max;   ///< Time of option expiration
+
   /**
    * @brief Constructs an OptionEnvironment object with specified parameters.
    *
@@ -57,7 +59,7 @@ struct OptionEnvironment {
                              double V_0 = 1)
       : n(n), m(m), r(r), d(d), sigma(sigma), epsilon(epsilon), kappa(kappa),
         theta(theta), beta(beta), tau(T_tau), rho(rho), K(K), S_0(S_0),
-        V_0(V_0) {
+        V_0(V_0), S_max(-1), V_max(-1), T_max(T_max) {
 
     std::tie(S_max, V_max) = get_adjusted_s_max_and_v_max(
         T_max, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m);

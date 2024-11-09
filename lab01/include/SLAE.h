@@ -59,40 +59,47 @@ public:
 
   /**
    * @brief Sets the initial conditions for the right-hand side vector (b).
+   * @param rhs The right-hand side vector to be updated.
    */
   void set_initial_RHS(double *rhs) { // utilize initial condition @t=T
-    for (int i = 0; i <= m; i++) {
-      int i0 = get_Q_index(i, 0);
-      rhs[i0] = 0;
-    }
     for (int i = 1; i <= m - 1; i++) {
       for (int j = 1; j <= n - 1; j++) {
         int ij = get_Q_index(i, j);
         rhs[ij] = m_oe->get_payoff_for_S_j(j);
       }
     }
-    for (int j = 1; j <= n - 1; j++) {
-      int mj = get_Q_index(m, j);
-      rhs[mj] = 0;
-    }
 
-    // Lower Boundary
-    double const8 =
-        m_oe->K * std::exp((m_oe->d - m_oe->r) * m_oe->tau) / m_oe->h_s_max;
-    double const9 = std::exp(-m_oe->d * m_oe->tau) * m_oe->h_s_max;
-    double const10 = std::exp(-m_oe->r * m_oe->tau) * m_oe->K;
-    double const11 = const9 * n - const10;
-    ;
+    update_RHS_boundary(rhs, 0.0); // utilize boundary condition @tau=0 (option is expired)
+  }
+
+  /**
+   * @brief Updates the right-hand side vector (b) with boundary conditions.
+   * @param rhs The right-hand side vector to be updated.
+   * @param current_tau Time to option expiration.
+   */
+  void update_RHS_boundary(double *rhs, double current_tau) const {
+    // Lower-Upper Boundary
+    // double const8 = m_oe->K * std::exp((m_oe->d - m_oe->r) * current_tau) / m_oe->h_s_max;
+    double const9 = std::exp(-m_oe->d * current_tau) * m_oe->h_s_max;
+    double const10 = std::exp(-m_oe->r * current_tau) * m_oe->K;
 
     for (int j = 0; j <= n; j++) {
       int oj = get_Q_index(0, j);
-      rhs[oj] = std::max(const9 * j - const10, 0.0);
+      rhs[oj] = std::max(const9 * j - const10, 0.0);  // relu(e^(-d * tau) * S - e^(-r * tau) * K)
+
+      int mj = get_Q_index(m, j);
+      rhs[mj] = const9 * j; // e^(-d * tau) * S
     }
 
-    // Right Boundary
-    for (int i = 1; i <= m; i++) {
-      int i_n = get_Q_index(i, n);
-      rhs[i_n] = const11;
+    // Left-Right Boundary
+    double const11 = const9 * n - const10;
+
+    for (int i = 1; i <= m - 1; i++) {
+      int in = get_Q_index(i, n);
+      rhs[in] = const11; // e^(-d * tau) * S_max - e^(-r * tau) * K
+
+      int i0 = get_Q_index(i, 0);
+      rhs[i0] = 0;
     }
   }
 
@@ -131,6 +138,8 @@ public:
     solve_linear_system_gsl(N, A, rhs, current_state);
     //    memcpy(rhs, current_state, N * sizeof(double));
     //    solve_linear_system_GEP(N, A, rhs);
+
+    update_RHS_boundary(rhs, current_time);
   }
 
 private:
@@ -242,10 +251,10 @@ private:
   /**
    * @brief Computes the index in the linear system for given grid coordinates.
    *
-   * @param i The index in the volatility dimension.
-   * @param j The index in the asset price dimension.
+   * @param v The index in the volatility dimension.
+   * @param s The index in the asset price dimension.
    * @return The corresponding index in the solution vector.
    */
-  [[nodiscard]] int get_Q_index(int i, int j) const { return i * (n + 1) + j; }
+  [[nodiscard]] int get_Q_index(int v, int s) const { return v * (n + 1) + s; }
 };
 } // namespace ADAAI::LAB01
