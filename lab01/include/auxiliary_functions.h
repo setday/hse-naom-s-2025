@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace ADAAI::LAB01 {
+namespace ADAAI::LAB01::AUX_FUNC {
 
 /**
  * @brief Calculates the maximum underlying asset price (S_max).

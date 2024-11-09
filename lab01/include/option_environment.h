@@ -61,7 +61,7 @@ struct OptionEnvironment {
         theta(theta), beta(beta), tau(T_tau), rho(rho), K(K), S_0(S_0),
         V_0(V_0), S_max(-1), V_max(-1), T_max(T_max) {
 
-    std::tie(S_max, V_max) = get_adjusted_s_max_and_v_max(
+    std::tie(S_max, V_max) = AUX_FUNC::get_adjusted_s_max_and_v_max(
         T_max, M_s, M_v, theta, epsilon, K, S_0, V_0, sigma, n, m);
 
     h_s_max = S_max / n;
@@ -77,7 +77,7 @@ struct OptionEnvironment {
   }
 
   [[nodiscard]] double get_payoff_for_S_j(int j) const {
-    return payoff_function(h_s_max * j, K);
+    return AUX_FUNC::payoff_function(h_s_max * j, K);
   }
 };
 } // namespace ADAAI::LAB01

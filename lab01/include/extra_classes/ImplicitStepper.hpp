@@ -4,17 +4,19 @@
 
 #include "../../../HSE_NaOM_S2024/integration/intergartor/steppers/BasicTimeStepper.hpp"
 
-namespace ADAAI::LAB01::Stepper
+#include "../lsu_solvers/solve_lsu.h"
+
+namespace ADAAI::Integration::Integrator::Stepper
 {
-template<typename RHS, LSSolveMethod method = LSSolveMethod::GEP>
+template<typename RHS, LSU_SOLVERS::LSSolveMethod method = LSU_SOLVERS::LSSolveMethod::GEP>
   requires std::is_base_of_v<ADAAI::Integration::Integrator::RHS, RHS>
-class ImplicitStepper : public Integration::Integrator::Stepper::TimeStepper<RHS>
+class ImplicitStepper : public TimeStepper<RHS>
   {
   double **implicit_matrix;
 
   public:
     explicit ImplicitStepper(const RHS* rhs )
-        : Integration::Integrator::Stepper::TimeStepper<RHS>( rhs )
+        : TimeStepper<RHS>( rhs )
     {
       implicit_matrix = new double*[RHS::N];
       for (int i = 0; i < RHS::N; ++i)
@@ -39,9 +41,9 @@ class ImplicitStepper : public Integration::Integrator::Stepper::TimeStepper<RHS
 
       solve_linear_system(RHS::N, implicit_matrix, next_state, current_state, method);
 
-      this->m_rhs->update_RHS_boundary(next_state, current_time);
+       this->m_rhs->update_RHS_boundary(next_state, current_time);
 
       return { current_time + suggested_d_time, suggested_d_time };
     }
-  }; // class DiscreteTimeStepper
+  }; // class ImplicitStepper
 } // namespace ADAAI::Integration::Integrator::Stepper

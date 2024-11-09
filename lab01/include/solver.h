@@ -5,7 +5,7 @@
 
 #include "SLAE.h"
 #include "extra_classes/BlindObserver.hpp"
-#include "gaussian_elimination.h"
+#include "lsu_solvers/solve_lsu.h"
 #include "extra_classes/ImplicitStepper.hpp"
 
 using namespace ADAAI::Integration::Integrator;
@@ -51,21 +51,21 @@ struct Solver {
     }
     else if constexpr (method == SolveMethod::IMPLICIT_GSL)
     {
-      auto stepper = Stepper::ImplicitStepper<SLAE, LSSolveMethod::GSL>(&slae);
+      auto stepper = Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::GSL>(&slae);
       auto observer = BlindObserver<SLAE>();
 
       auto integrator = ODE_Integrator<SLAE,
-          Stepper::ImplicitStepper<SLAE, LSSolveMethod::GSL>,
+          Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::GSL>,
           BlindObserver<SLAE>>(&stepper, &observer);
       integrator(b, b, t_start, t_end, t_tau);
     }
     else if constexpr (method == SolveMethod::IMPLICIT_GAUSSIAN_ELIMINATION)
     {
-      auto stepper = Stepper::ImplicitStepper<SLAE, LSSolveMethod::GEP>(&slae);
+      auto stepper = Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::GEP>(&slae);
       auto observer = BlindObserver<SLAE>();
 
       auto integrator = ODE_Integrator<SLAE,
-          Stepper::ImplicitStepper<SLAE, LSSolveMethod::GEP>,
+          Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::GEP>,
           BlindObserver<SLAE>>(&stepper, &observer);
       integrator(b, b, t_start, t_end, t_tau);
     }

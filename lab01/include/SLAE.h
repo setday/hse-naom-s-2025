@@ -7,7 +7,7 @@
 #include "../../HSE_NaOM_S2024/integration/intergartor/RHS.hpp"
 
 #include "auxiliary_functions.h"
-#include "gaussian_elimination.h"
+#include "lsu_solvers/gaussian_elimination_pivoting.h"
 #include "option_environment.h"
 
 namespace ADAAI::LAB01 {
@@ -285,7 +285,7 @@ private:
     // Left Boundary
     for (int i = 0; i <= m; i++) {
       int i0 = get_Q_index(i, 0);
-      A[i0][i0] = 0 ;
+      A[i0][i0] = 1;
     }
 
     // Bottom Boundary
@@ -298,8 +298,8 @@ private:
     for (int j = 1; j <= n - 1; j++) {
       int mj = get_Q_index(m, j);
       A[mj][mj] = 1;
-      // int mmj = get_Q_index(m - 1, j);
-      //  A[mj][mmj] = -1;
+      int mmj = get_Q_index(m - 1, j);
+      A[mj][mmj] = -1;
     }
 
     // Right Boundary
