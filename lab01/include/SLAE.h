@@ -4,7 +4,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "../../previous_labs/intergartor/RHS.hpp"
+#include "../../HSE_NaOM_S2024/integration/intergartor/RHS.hpp"
 
 #include "auxiliary_functions.h"
 #include "gaussian_elimination.h"
@@ -45,16 +45,27 @@ public:
    * @param V_0 The initial volatility (default is 1).
    */
   explicit SLAE(OptionEnvironment *option_environment)
-      : m_oe(option_environment), n(option_environment->n),
-        m(option_environment->m) {
-    N = (option_environment->n + 1) * (option_environment->m + 1);
-
+      : m_oe(option_environment), n(OptionEnvironment::n),
+        m(OptionEnvironment::m) {
     A = new double *[N];
-    for (size_t i = 0; i < N; ++i) {
-      A[i] = new double[N]();
+    for (int i = 0; i < N; ++i) {
+      A[i] = new double[N];
+      std::memset(A[i], 0, N * sizeof(double));
     }
 
     construct_SLAE();
+  }
+
+  /**
+   * @brief Destructor for the SLAE object.
+   *
+   * Frees the memory allocated for the coefficient matrix.
+   */
+  ~SLAE() {
+    for (int i = 0; i < N; ++i) {
+      delete[] A[i];
+    }
+    delete[] A;
   }
 
   /**
@@ -78,10 +89,12 @@ public:
    * @param current_tau Time to option expiration.
    */
   void update_RHS_boundary(double *rhs, double current_tau) const {
+    double K_star = m_oe->K * std::exp(-(m_oe->r - m_oe->d) * current_tau);
+
     // Lower-Upper Boundary
     // double const8 = m_oe->K * std::exp((m_oe->d - m_oe->r) * current_tau) / m_oe->h_s_max;
     double const9 = std::exp(-m_oe->d * current_tau) * m_oe->h_s_max;
-    double const10 = std::exp(-m_oe->r * current_tau) * m_oe->K;
+    double const10 = std::exp(-m_oe->r * current_tau) * K_star;
 
     for (int j = 0; j <= n; j++) {
       int oj = get_Q_index(0, j);
@@ -121,25 +134,81 @@ public:
   }
 
   /**
-   * @brief Destructor to clean up dynamically allocated memory.
+   * @brief Retrieves the implicit matrix.
    *
-   * Frees the memory allocated for the solution vector, RHS vector, and the
-   * coefficient matrix.
+   * Copies the internal matrix to the specified matrix.
+   *
+   * @param matrix The matrix to be populated with the implicit matrix.
    */
-  ~SLAE() {
-    for (size_t i = 0; i < N; ++i) {
-      delete[] A[i];
+  void get_implicit_matrix(double **matrix) const {
+    for (int i = 0; i < N; i++) {
+      memcpy(matrix[i], A[i], N * sizeof(double));
     }
-    delete[] A;
   }
 
   void operator()(double current_time, const double *current_state,
                   double *rhs) const override {
-    solve_linear_system_gsl(N, A, rhs, current_state);
-    //    memcpy(rhs, current_state, N * sizeof(double));
-    //    solve_linear_system_GEP(N, A, rhs);
+    double const_ds = (m_oe->r - m_oe->d) / 2;
+    double const_ds_ds = m_oe->sigma * m_oe->sigma / 2 * m_oe->h_v_max *
+                         std::pow(m_oe->h_s_max, 2 * m_oe->beta - 2);
+    double const_dv_dv = m_oe->epsilon * m_oe->epsilon / (2 * m_oe->h_v_max);
+    double const_dv_ds = m_oe->sigma * m_oe->epsilon * m_oe->rho *
+                         std::pow(m_oe->h_s_max, m_oe->beta - 1) / 4;
+
+    for (int i = 1; i <= m - 1; i++) {
+      double const_ds_ds_i = const_ds_ds * i;
+      double const_dv_dv_i = const_dv_dv * i;
+      double const_dv_ds_i = const_dv_ds * i;
+
+      for (int j = 1; j <= n - 1; j++) {
+        int ij = get_Q_index(i, j);
+        // The second term in LHS (operator L: convective + diffusive terms)
+        int ipj = get_Q_index(i + 1, j);
+        int ijp = get_Q_index(i, j + 1);
+        int imj = get_Q_index(i - 1, j);
+        int ijm = get_Q_index(i, j - 1);
+        int ipjp = get_Q_index(i + 1, j + 1);
+        int imjm = get_Q_index(i - 1, j - 1);
+        int ipjm = get_Q_index(i + 1, j - 1);
+        int imjp = get_Q_index(i - 1, j + 1);
+
+        rhs[ij] = m_oe->r * current_state[ij];
+
+        double temp_const = const_ds * j;
+        rhs[ij] -= temp_const * (current_state[ijp] - current_state[ijm]);
+
+        temp_const = const_ds_ds_i * std::pow(j, 2 * m_oe->beta);
+        rhs[ij] -= temp_const * (current_state[ijp] - 2 * current_state[ij] + current_state[ijm]);
+
+        temp_const = m_oe->tau * (m_oe->kappa / m_oe->h_v_max - i) / 2;
+        rhs[ij] -= temp_const * (current_state[ipj] - current_state[imj]);
+
+        temp_const = const_dv_dv_i;
+        rhs[ij] -= temp_const * (current_state[ipj] - 2 * current_state[ij] + current_state[imj]);
+
+        temp_const = const_dv_ds_i * std::pow(j, m_oe->beta);
+        rhs[ij] -= temp_const * (current_state[ipjp] - current_state[ipjm] - current_state[imjp] + current_state[imjm]);
+      }
+    }
 
     update_RHS_boundary(rhs, current_time);
+
+
+    for (int j = 0; j <= n; j++) {
+      int oj = get_Q_index(0, j);
+      rhs[oj] = (rhs[oj] - current_state[oj]) / m_oe->tau;
+
+      int mj = get_Q_index(m, j);
+      rhs[mj] = (rhs[mj] - current_state[mj]) / m_oe->tau;
+    }
+
+    for (int i = 1; i <= m - 1; i++) {
+      int in = get_Q_index(i, n);
+      rhs[in] = (rhs[in] - current_state[in]) / m_oe->tau;
+
+      int i0 = get_Q_index(i, 0);
+      rhs[i0] = (rhs[i0] - current_state[i0]) / m_oe->tau;
+    }
   }
 
 private:
@@ -155,18 +224,19 @@ private:
     // We define many constants which don't have any sense, but
     // they are used many times in different places. It is only a matter of
     // optimization.
-    double const1 = m_oe->tau * (m_oe->r - m_oe->d) / 2;
-    double const2 = m_oe->tau * m_oe->sigma * m_oe->sigma / 2 * m_oe->h_v_max *
+    double const_ds = m_oe->tau * (m_oe->r - m_oe->d) / 2;
+    double const_ds_ds = m_oe->tau * m_oe->sigma * m_oe->sigma / 2 * m_oe->h_v_max *
                     std::pow(m_oe->h_s_max, 2 * m_oe->beta - 2);
-    double const4 =
+    double const_dv_dv =
         m_oe->tau * m_oe->epsilon * m_oe->epsilon / (2 * m_oe->h_v_max);
-    double const5 = m_oe->tau * m_oe->sigma * m_oe->epsilon * m_oe->rho *
+    double const_dv_ds = m_oe->tau * m_oe->sigma * m_oe->epsilon * m_oe->rho *
                     std::pow(m_oe->h_s_max, m_oe->beta - 1) / 4;
 
     for (int i = 1; i <= m - 1; i++) {
 
-      double const3 = const2 * i;
-      double const6 = const5 * i;
+      double const_ds_ds_i = const_ds_ds * i;
+      double const_dv_dv_i = const_dv_dv * i;
+      double const_dv_ds_i = const_dv_ds * i;
 
       for (int j = 1; j <= n - 1; j++) {
         int ij = get_Q_index(i, j);
@@ -183,11 +253,11 @@ private:
         // int ipjm = get_Q_index(i + 1, j - 1);
         // int imjp = get_Q_index(i - 1, j + 1);
 
-        double temp_const = const1 * j;
+        double temp_const = const_ds * j;
         A[ij][ijp] -= temp_const;
         A[ij][ijm] += temp_const;
 
-        temp_const = const3 * std::pow(j, 2 * m_oe->beta - 2) * j * j;
+        temp_const = const_ds_ds_i * std::pow(j, 2 * m_oe->beta);
         A[ij][ijp] -= temp_const;
         A[ij][ij] += 2 * temp_const;
         A[ij][ijm] -= temp_const;
@@ -196,12 +266,12 @@ private:
         A[ipj][ij] -= temp_const;
         A[imj][ij] += temp_const;
 
-        temp_const = const4 * i;
+        temp_const = const_dv_dv_i;
         A[ipj][ij] -= temp_const;
         A[ij][ij] += 2 * temp_const;
         A[imj][ipj] -= temp_const;
 
-        temp_const = const6 * std::pow(j, m_oe->beta);
+        temp_const = const_dv_ds_i * std::pow(j, m_oe->beta);
         A[ipj][ipj] -= temp_const;
         A[ipj][ijm] += temp_const;
         A[imj][ijp] += temp_const;
@@ -215,7 +285,7 @@ private:
     // Left Boundary
     for (int i = 0; i <= m; i++) {
       int i0 = get_Q_index(i, 0);
-      A[i0][i0] = 1;
+      A[i0][i0] = 0 ;
     }
 
     // Bottom Boundary
@@ -227,9 +297,9 @@ private:
     // Top Boundary
     for (int j = 1; j <= n - 1; j++) {
       int mj = get_Q_index(m, j);
-      int mmj = get_Q_index(m - 1, j);
       A[mj][mj] = 1;
-      A[mj][mmj] = -1;
+      // int mmj = get_Q_index(m - 1, j);
+      //  A[mj][mmj] = -1;
     }
 
     // Right Boundary
@@ -240,8 +310,9 @@ private:
   }
 
 public:
-  double **A; ///< Coefficient matrix. Size = NxN
-  size_t N;   ///< Total number of equations (N = (n + 1) * (m + 1))
+  constexpr static int N =
+      (OptionEnvironment::n + 1) * (OptionEnvironment::m + 1); ///< Total number of equations (N = (n + 1) * (m + 1))
+  double **A;                                                  ///< Coefficient matrix. Size = NxN
 
 private:
   OptionEnvironment *m_oe; ///< Pointer to the OptionEnvironment object

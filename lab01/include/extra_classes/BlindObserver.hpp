@@ -1,15 +1,9 @@
 #pragma once
 
-#include "RHS.hpp"
+#include "../../../HSE_NaOM_S2024/integration/intergartor/Observer.hpp"
 
 namespace ADAAI::Integration::Integrator
 {
-  template<typename RHS>
-  struct Observer
-  {
-    virtual bool operator()( double current_time, const double *current_state ) const = 0;
-  };
-
   template<typename RHS>
   struct BlindObserver : Observer<RHS>
   {
