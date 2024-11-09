@@ -3,13 +3,15 @@
 #include <cstddef>
 #include <stdexcept>
 
-//#include "gsl_solver.h"
+#include "gsl_solver.h"
 #include "gaussian_elimination_pivoting.h"
+#include "openblas_solver.h"
 
 namespace ADAAI::LSU_SOLVERS {
   enum class LSSolveMethod {
     GSL,
     GEP,
+    OPENBLAS,
   };
 
   /**
@@ -29,11 +31,14 @@ namespace ADAAI::LSU_SOLVERS {
    */
   void solve_linear_system(size_t N, double **A, double *x, const double *b, LSSolveMethod method) {
     switch (method) {
-//      case LSSolveMethod::GSL:
-//        solve_linear_system_gsl(N, A, x, b);
-//        break;
+      case LSSolveMethod::GSL:
+        solve_linear_system_gsl(N, A, x, b);
+        break;
       case LSSolveMethod::GEP:
         solve_linear_system_GEP(N, A, x, b);
+        break;
+      case LSSolveMethod::OPENBLAS:
+        solve_linear_system_openblas(N, A, x, b);
         break;
       default:
         throw std::runtime_error("Unknown method");

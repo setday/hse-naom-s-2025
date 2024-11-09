@@ -7,7 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_compile_options(-Wall -Wextra -Wshadow -O0 -g) # Debug
 # add_compile_options(-Ofast) # Release
 
-#find_package(GSL REQUIRED)
-#link_libraries(GSL::gsl)
+find_package(GSL REQUIRED)
+link_libraries(GSL::gsl)
+
+set(BLA_VENDER OpenBLAS)
+find_package(BLAS REQUIRED)
 
 add_executable(HSE_NaOM_S2024 lab01/main.cpp)

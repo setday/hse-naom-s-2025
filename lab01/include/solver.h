@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../HSE_NaOM_S2024/integration/intergartor/Interator.hpp"
-#include "../../HSE_NaOM_S2024/integration/intergartor/steppers/RFK45_TimeStepper.hpp"
+#include "../../HSE_NaOM_S2024/integration/intergartor/steppers/BasicTimeStepper.hpp"
 
 #include "SLAE.h"
 #include "extra_classes/BlindObserver.hpp"
@@ -15,6 +15,7 @@ namespace ADAAI::LAB01 {
 enum class SolveMethod {
   EXPLICIT,
   IMPLICIT_GSL,
+  IMPLICIT_OPENBLAS,
   IMPLICIT_GAUSSIAN_ELIMINATION,
 };
 
@@ -56,6 +57,16 @@ struct Solver {
 
       auto integrator = ODE_Integrator<SLAE,
           Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::GSL>,
+          BlindObserver<SLAE>>(&stepper, &observer);
+      integrator(b, b, t_start, t_end, t_tau);
+    }
+    else if constexpr (method == SolveMethod::IMPLICIT_OPENBLAS)
+    {
+      auto stepper = Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::OPENBLAS>(&slae);
+      auto observer = BlindObserver<SLAE>();
+
+      auto integrator = ODE_Integrator<SLAE,
+          Stepper::ImplicitStepper<SLAE, LSU_SOLVERS::LSSolveMethod::OPENBLAS>,
           BlindObserver<SLAE>>(&stepper, &observer);
       integrator(b, b, t_start, t_end, t_tau);
     }
