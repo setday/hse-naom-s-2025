@@ -7,10 +7,10 @@ namespace ADAAI::LSU_SOLVERS {
   const int K = 1000; // number of iterations
 
   /**
-   * @brief Solves a system of linear equations using interactive scheme.
+   * @brief Solves a system of linear equations using iterative scheme.
    *
    * This function takes the coefficient matrix, the x vector and the right-hand side vector
-   * and solves for the unknowns using the interactive method. 
+   * and solves for the unknowns using the iterative method. 
    * The solution is then stored back in the x vector.
    *
    * @param N The size of the system of equations.
