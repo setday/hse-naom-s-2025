@@ -52,7 +52,9 @@ namespace ADAAI::LSU_SOLVERS {
         }
       }
 
-      assert(A_copy[pivot][i] != 0); // Singular matrix
+      if (A_copy[pivot][i] == 0) {
+        throw std::runtime_error("GEP solver: Singular matrix encountered");
+      }
 
       // Swap rows
       std::swap(A_copy[i], A_copy[pivot]);
