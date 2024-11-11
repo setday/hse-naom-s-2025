@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdlib>
 #include <cstddef>
-
-//#include <cblas.h>
+#include <gsl/gsl_blas.h>
+#include <lapacke.h>
 
 namespace ADAAI::LSU_SOLVERS {
   /**
@@ -17,7 +18,16 @@ namespace ADAAI::LSU_SOLVERS {
    * @param x The solution vector.
    * @param b The right-hand side vector of the system.
    */
-  void solve_linear_system_openblas(size_t N, double **A, double *x, const double *b) {
-    throw std::runtime_error("Not implemented");
+  void solve_linear_system_openblas(std::size_t N, double **A, double *x, const double *b) {
+    int *ipiv = (int *)std::malloc(N * sizeof(*ipiv));
+    std::memcpy(x, b, N * sizeof(double));
+    double *C = (double *)std::malloc(N * N * sizeof(*C));
+    for(std::size_t i = 0; i < N; ++i) {
+        std::memcpy(C + i * N, A[i], N * sizeof(double));
+    }
+    LAPACKE_dgetrf(LAPACK_COL_MAJOR, N, N, C, N, ipiv);
+    LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', N, 1, C, N, ipiv, x, N);
+    free(C);
+    free(ipiv);
   }
 } // namespace ADAAI::LSU_SOLVERS

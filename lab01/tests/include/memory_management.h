@@ -8,6 +8,7 @@ namespace ADAAI::LAB01::TEST::MEM {
     return new F[N];
   }
 
+  // автор поел говна
   template <typename F>
   F ** allocate_matrix(size_t N) {
     F **A = new F *[N];

@@ -2,7 +2,8 @@
 
 #include "include/solver.h"
 
-#include "tests/test_gaussian_elimination.cpp"
+//#include "tests/test_gaussian_elimination.cpp"
+#include "tests/test_openblas.cpp"
 
 int main() {
 //  double px = ADAAI::LAB01::Solver<ADAAI::LAB01::SolveMethod::IMPLICIT_GSL>::solve();
