@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-namespace ADAAI::LAB01::AUX_FUNC {
+namespace ADAAI::LAB01::AUX_FUNC
+{
 
 /**
  * @brief Calculates the maximum underlying asset price (S_max).
@@ -14,8 +15,9 @@ namespace ADAAI::LAB01::AUX_FUNC {
  * @param sigma The volatility of the asset.
  * @return The calculated maximum asset price (S_max).
  */
-double get_s_max(double T, int M_s, double K, double S_0, double sigma) {
-  return std::max(S_0, K) * std::exp(M_s * sigma * std::sqrt(T));
+double get_s_max( double T, int M_s, double K, double S_0, double sigma )
+{
+  return std::max( S_0, K ) * std::exp( M_s * sigma * std::sqrt( T ) );
 }
 
 /**
@@ -27,8 +29,9 @@ double get_s_max(double T, int M_s, double K, double S_0, double sigma) {
  * @param eps Volatility of volatility.
  * @return The calculated maximum volatility (V_max).
  */
-double get_v_max(double T, double theta, int M_v, double eps) {
-  return std::max(1.0, theta) * std::exp(M_v * eps * std::sqrt(T));
+double get_v_max( double T, double theta, int M_v, double eps )
+{
+  return std::max( 1.0, theta ) * std::exp( M_v * eps * std::sqrt( T ) );
 }
 
 /**
@@ -48,12 +51,11 @@ double get_v_max(double T, double theta, int M_v, double eps) {
  * @return A pair containing the adjusted S_max and V_max.
  */
 std::pair<double, double>
-get_adjusted_s_max_and_v_max(double T, int M_s, int M_v, double theta,
-                             double eps, double K, double S_0, double V_0,
-                             double sigma, int n, int m) {
+get_adjusted_s_max_and_v_max( double T, int M_s, int M_v, double theta, double eps, double K, double S_0, double V_0, double sigma, int n, int m )
+{
   // Step 1: Compute the initial estimate for S_max and V_max.
-  double S_max = get_s_max(T, M_s, K, S_0, sigma);
-  double V_max = get_v_max(T, theta, M_v, eps);
+  double S_max = get_s_max( T, M_s, K, S_0, sigma );
+  double V_max = get_v_max( T, theta, M_v, eps );
 
   // Step 2: Adjust S_max and V_max s.t. S(0) and V(0) lie exactly on the grid.
   // Derivation:
@@ -63,13 +65,13 @@ get_adjusted_s_max_and_v_max(double T, int M_s, int M_v, double theta,
   //            use this value to compute S_max. Now, S(0) = S_max * (j / n).
   //            The same procedure applies to V_max.
 
-  int j = static_cast<int>(n * S_0 / S_max);
+  int j = static_cast<int>( n * S_0 / S_max );
   S_max = S_0 * n / j;
 
-  int i = static_cast<int>(m * V_0 / V_max);
+  int i = static_cast<int>( m * V_0 / V_max );
   V_max = V_0 * m / i;
 
-  return {S_max, V_max};
+  return { S_max, V_max };
 }
 
 /**
@@ -79,5 +81,8 @@ get_adjusted_s_max_and_v_max(double T, int M_s, int M_v, double theta,
  * @param K The strike price.
  * @return The calculated payoff, which is max(S - K, 0).
  */
-double payoff_function(double S, double K) { return std::max(S - K, 0.0); }
-} // namespace ADAAI::LAB01
+double payoff_function( double S, double K )
+{
+  return std::max( S - K, 0.0 );
+}
+} // namespace ADAAI::LAB01::AUX_FUNC

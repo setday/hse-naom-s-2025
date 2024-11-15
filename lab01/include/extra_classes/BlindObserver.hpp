@@ -4,11 +4,13 @@
 
 namespace ADAAI::Integration::Integrator
 {
-  template<typename RHS>
-  struct BlindObserver : Observer<RHS>
+template<typename RHS>
+struct BlindObserver : Observer<RHS>
+{
+  bool operator()( double        current_time,
+                   const double* current_state ) const override
   {
-    bool operator()( double current_time, const double *current_state ) const override {
-      return true;
-    }
-  };
+    return true;
+  }
+};
 } // namespace ADAAI::Integration::Integrator
