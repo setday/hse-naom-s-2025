@@ -3,12 +3,13 @@
 #include <tuple>
 #include <vector>
 
+#include "../include/matrix_work/matrix.h"
+
 #include "../include/lse_solvers/solve_lse.h"
-#include "include/memory_management.h"
 #include "include/random_management.h"
 
 template<typename F, ADAAI::LSE_SOLVERS::LSSolveMethod M>
-void find_inverse( F** A, F* b, F* x, size_t N )
+void find_inverse( ADAAI::MATH::Matrix<F> A, F* b, F* x, size_t N )
 {
   ADAAI::LSE_SOLVERS::solve_linear_system( N, A, x, b, M );
 }
@@ -36,26 +37,22 @@ F compute_eps( F** A, F* b, F* x, size_t N )
 template<typename F, ADAAI::LSE_SOLVERS::LSSolveMethod M>
 std::pair<F, F> test_lse_solvers( size_t N )
 {
-  F** A = ADAAI::LAB01::TEST::MEM::allocate_matrix<F>( N );
-  F*  b = ADAAI::LAB01::TEST::MEM::allocate_vector<F>( N );
-  F*  x = ADAAI::LAB01::TEST::MEM::allocate_vector<F>( N );
+  ADAAI::MATH::Matrix<F> A( N, N );
+  ADAAI::MATH::Vector<F> b( N );
+  ADAAI::MATH::Vector<F> x( N );
 
   size_t         num_tests = 10;
   std::vector<F> eps( num_tests );
 
   for ( size_t i = 0; i < num_tests; ++i )
   {
-    ADAAI::LAB01::TEST::RAND::generate_normally_distributed_matrix( A, N );
-    ADAAI::LAB01::TEST::RAND::generate_normally_distributed_vector( b, N );
+    ADAAI::LAB01::TEST::RAND::generate_normally_distributed_matrix( A );
+    ADAAI::LAB01::TEST::RAND::generate_normally_distributed_vector( b );
 
-    find_inverse<F, M>( A, b, x, N );
+    find_inverse<F, M>( A, b.data, x.data, N );
 
-    eps[i] = compute_eps( A, b, x, N );
+    eps[i] = compute_eps( A.data, b.data, x.data, N );
   }
-
-  ADAAI::LAB01::TEST::MEM::deallocate_matrix( A, N );
-  ADAAI::LAB01::TEST::MEM::deallocate_vector( b );
-  ADAAI::LAB01::TEST::MEM::deallocate_vector( x );
 
   F sum_eps = 0.0;
   F max_eps = 0.0;

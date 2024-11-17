@@ -4,6 +4,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "matrix_work/sparse_matrix.h"
+
 #include "../../HSE_NaOM_S2024/integration/intergartor/RHS.hpp"
 
 #include "auxiliary_functions.h"
@@ -47,16 +49,9 @@ public:
    * @param V_0 The initial volatility (default is 1).
    */
   explicit SLAE( OptionEnvironment* option_environment )
-      : m_oe( option_environment ), n( OptionEnvironment::n ),
-        m( OptionEnvironment::m )
+      : A( N, N ), A_sparse(), m_oe( option_environment ),
+        n( OptionEnvironment::n ), m( OptionEnvironment::m )
   {
-    A = new double*[N];
-    for ( int i = 0; i < N; ++i )
-    {
-      A[i] = new double[N];
-      std::memset( A[i], 0, N * sizeof( double ) );
-    }
-
     construct_SLAE();
   }
 
@@ -65,14 +60,7 @@ public:
    *
    * Frees the memory allocated for the coefficient matrix.
    */
-  ~SLAE()
-  {
-    for ( int i = 0; i < N; ++i )
-    {
-      delete[] A[i];
-    }
-    delete[] A;
-  }
+  ~SLAE() = default;
 
   /**
    * @brief Sets the initial conditions for the right-hand side vector (b).
@@ -147,21 +135,6 @@ public:
     int j = m_oe->get_closest_V_index( m_oe->V_0 );
 
     return rhs[get_Q_index( i, j )];
-  }
-
-  /**
-   * @brief Retrieves the implicit matrix.
-   *
-   * Copies the internal matrix to the specified matrix.
-   *
-   * @param matrix The matrix to be populated with the implicit matrix.
-   */
-  void get_implicit_matrix( double** matrix ) const
-  {
-    for ( int i = 0; i < N; i++ )
-    {
-      memcpy( matrix[i], A[i], N * sizeof( double ) );
-    }
   }
 
   void operator()( double current_time, const double* current_state, double* rhs ) const override
@@ -338,14 +311,19 @@ private:
       int in    = get_Q_index( i, n );
       A[in][in] = 1;
     }
+
+    A_sparse.from_dense( A );
   }
 
 public:
   constexpr static int N =
       ( OptionEnvironment::n + 1 ) *
-      ( OptionEnvironment::m +
-        1 );  ///< Total number of equations (N = (n + 1) * (m + 1))
-  double** A; ///< Coefficient matrix. Size = NxN
+      ( OptionEnvironment::m + 1 );
+  /// ^ Total number of equations (N = (n + 1) * (m + 1))
+  MATH::Matrix<double> A;
+  /// ^ Coefficient matrix. Size = NxN
+  MATH::SparseMatrix<double> A_sparse;
+  /// ^ Sparse version of the coefficient matrix
 
 private:
   OptionEnvironment* m_oe; ///< Pointer to the OptionEnvironment object
