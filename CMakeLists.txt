@@ -12,5 +12,6 @@ link_libraries(GSL::gsl)
 
 set(BLA_VENDER OpenBLAS)
 find_package(BLAS REQUIRED)
+link_libraries(${BLAS_LIBRARIES})
 
 add_executable(HSE_NaOM_S2024 lab01/main.cpp)

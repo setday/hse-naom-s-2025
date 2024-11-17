@@ -5,6 +5,7 @@
 
 #include "gaussian_elimination_pivoting.h"
 #include "gsl_solver.h"
+#include "iterative_solver.h"
 #include "openblas_solver.h"
 
 namespace ADAAI::LSE_SOLVERS
@@ -14,6 +15,7 @@ enum class LSSolveMethod
   GSL,
   GEP,
   OPENBLAS,
+  ITERATIVE,
 };
 
 /**
@@ -43,6 +45,9 @@ void solve_linear_system( size_t N, double** A, double* x, const double* b, LSSo
       break;
     case LSSolveMethod::OPENBLAS:
       solve_linear_system_openblas( N, A, x, b );
+      break;
+    case LSSolveMethod::ITERATIVE:
+      solve_linear_system_iterative<double>( N, A, x, b );
       break;
     default:
       throw std::runtime_error( "Unknown method" );

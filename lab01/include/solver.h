@@ -19,6 +19,7 @@ enum class SolveMethod
   IMPLICIT_GSL,
   IMPLICIT_OPENBLAS,
   IMPLICIT_GAUSSIAN_ELIMINATION,
+  IMPLICIT_ITERATIVE,
 };
 
 /**
@@ -59,43 +60,33 @@ struct Solver
     }
     else if constexpr ( method == SolveMethod::IMPLICIT_GSL )
     {
-      auto stepper =
-          Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::GSL>(
-              &slae );
-      auto observer = BlindObserver<SLAE>();
-
-      auto integrator = ODE_Integrator<
-          SLAE, Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::GSL>,
-          BlindObserver<SLAE>>( &stepper, &observer );
-      integrator( b, b, t_start, t_end, t_tau );
+      solve_implicit<LSE_SOLVERS::LSSolveMethod::GSL>( b, &slae, t_start, t_end, t_tau );
     }
     else if constexpr ( method == SolveMethod::IMPLICIT_OPENBLAS )
     {
-      auto stepper =
-          Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::OPENBLAS>(
-              &slae );
-      auto observer = BlindObserver<SLAE>();
-
-      auto integrator = ODE_Integrator<
-          SLAE,
-          Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::OPENBLAS>,
-          BlindObserver<SLAE>>( &stepper, &observer );
-      integrator( b, b, t_start, t_end, t_tau );
+      solve_implicit<LSE_SOLVERS::LSSolveMethod::OPENBLAS>( b, &slae, t_start, t_end, t_tau );
     }
     else if constexpr ( method == SolveMethod::IMPLICIT_GAUSSIAN_ELIMINATION )
     {
-      auto stepper =
-          Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::GEP>(
-              &slae );
-      auto observer = BlindObserver<SLAE>();
-
-      auto integrator = ODE_Integrator<
-          SLAE, Stepper::ImplicitStepper<SLAE, LSE_SOLVERS::LSSolveMethod::GEP>,
-          BlindObserver<SLAE>>( &stepper, &observer );
-      integrator( b, b, t_start, t_end, t_tau );
+      solve_implicit<LSE_SOLVERS::LSSolveMethod::GEP>( b, &slae, t_start, t_end, t_tau );
+    }
+    else if constexpr ( method == SolveMethod::IMPLICIT_ITERATIVE )
+    {
+      solve_implicit<LSE_SOLVERS::LSSolveMethod::ITERATIVE>( b, &slae, t_start, t_end, t_tau );
     }
 
     return slae.get_the_answer( b );
+  }
+
+private:
+  template<LSE_SOLVERS::LSSolveMethod M>
+  static void solve_implicit( double* b, SLAE* slae, double t_start, double t_end, double t_tau )
+  {
+    auto stepper  = Stepper::ImplicitStepper<SLAE, M>( slae );
+    auto observer = BlindObserver<SLAE>();
+
+    auto integrator = ODE_Integrator<SLAE, Stepper::ImplicitStepper<SLAE, M>, BlindObserver<SLAE>>( &stepper, &observer );
+    integrator( b, b, t_start, t_end, t_tau );
   }
 };
 
