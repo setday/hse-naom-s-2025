@@ -25,7 +25,6 @@ class MomentumStrategy:
             "window_size": window_size,  # Measured in seconds
             "tau": 60  # Timestep to compute position again. Measured in seconds
         }
-        self.time_steps_ = data.get_column("DATETIME").to_list()
         self.sell_volume_ = data.get_column("SELL_VOLUME").to_list()
         self.buy_volume_ = data.get_column("BUY_VOLUME").to_list()
         self.volume_ = [s + b for s,
@@ -40,7 +39,6 @@ class MomentumStrategy:
                 bv + self.buy_volume_prefix_sum[-1])
 
         self.mid_px_ = data.get_column("MID_PX").to_list()
-        self.n_transactions = 0
 
     def get_position(self, t: int) -> float:
         if t == 0:
@@ -117,9 +115,7 @@ class MomentumStrategy:
         x3_tilda_mean = self.get_x3_tilda_mean(t)
         x3_tilda_std = 0
         for k in range(0, self.hyperparams_["K"]):
-            assert t - k * \
-                self.hyperparams_["window_size"] >= 0, print(
-                    t, k * self.hyperparams_["window_size"])
+            assert t - k * self.hyperparams_["window_size"] >= 0, print(t, k * self.hyperparams_["window_size"])
             x3_tilda_std += (self.get_x3_tilda(t - k *
                              self.hyperparams_["window_size"]) - x3_tilda_mean) ** 2
         return x3_tilda_std / (self.hyperparams_["K"] - 1)  # sample variance
