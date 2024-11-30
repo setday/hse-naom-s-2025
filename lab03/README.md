@@ -9,4 +9,4 @@
 - Take into account transaction costs by introducing a new parameter, Gamma
 - Tune the final model (using the function of the "second order")
 - Test model out of sample (download and prepare test dataset)
-- Quick fix for C++ version: parse data before fine-tuning rather than at each iteration!
+- ~~Quick fix for C++ version: parse data before fine-tuning rather than at each iteration!~~

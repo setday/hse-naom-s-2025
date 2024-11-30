@@ -35,6 +35,7 @@
 *.app
 
 cmake-build-*
+build
 
 .vscode
 .idea
