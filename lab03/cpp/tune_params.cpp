@@ -10,7 +10,7 @@ void tune_params( const std::string& file_path )
 {
   // Define parameter grids
   std::vector<double> a_values      = { 2, 2.5, 3 };
-  std::vector<double> beta_values   = { 1, 2, 5 };
+  std::vector<double> beta_values   = { 1, 2, 3, 4, 5 };
   std::vector<double> alpha1_values = { 1, 3, 5 };
   std::vector<double> alpha2_values = { 1, 3, 5 };
   std::vector<double> alpha3_values = { 1, 3, 5 };
@@ -26,7 +26,7 @@ void tune_params( const std::string& file_path )
   int              K           = 144;
   float            M           = 1;
   int              window_size = 300;
-  int              tau         = 60;
+  int              tau         = 120;
   MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0 );
   int              T = data.mid_px.size();
 

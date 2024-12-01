@@ -9,14 +9,6 @@
 class MomentumStrategy
 {
 public:
-  std::vector<int>    sell_volume_;
-  std::vector<int>    buy_volume_;
-  std::vector<double> mid_px_;
-  std::vector<int>    volume_;
-
-  std::vector<int> volume_prefix_sum_;
-  std::vector<int> buy_volume_prefix_sum_;
-
   // Parameters
   double a_;
   double beta_;
@@ -25,11 +17,21 @@ public:
   double alpha3_;
   double alpha4_;
 
+private:
+  std::vector<int>    sell_volume_;
+  std::vector<int>    buy_volume_;
+  std::vector<double> mid_px_;
+  std::vector<int>    volume_;
+
+  std::vector<int> volume_prefix_sum_;
+  std::vector<int> buy_volume_prefix_sum_;
+
   // Hyperparameters
   int    K_;
   double risk_control_;
   int    window_size_;
   int    tau_;
+  double trading_fee_ = 0.00025; // 0.025%
 
 
 public:
@@ -164,7 +166,7 @@ public:
   double get_delta_PnL( int t1, int t2 )
   {
     double pos = get_position( t1 );
-    return pos * ( mid_px_[t2] - mid_px_[t1] );
+    return pos * ( mid_px_[t2] - mid_px_[t1] * (1 + trading_fee_) );
   }
 
   double get_PnL( int T )
@@ -177,6 +179,7 @@ public:
     return total_PnL;
   }
 
+public:
   double get_sortino_ratio( int T )
   {
     double total_PnL    = 0;
