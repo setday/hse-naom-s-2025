@@ -19,12 +19,13 @@ void tune_params( const std::string& file_path )
 
   // Iterate through all parameter combinations
   double                                  best_sortino = -std::numeric_limits<double>::infinity();
+  double                                  best_PnL = -std::numeric_limits<double>::infinity();
   std::unordered_map<std::string, double> best_params;
 
   Records data;
   parseCSV( file_path, data );
   int              K           = 144;
-  float            M           = 1;
+  float            M           = 10'000;
   int              window_size = 300;
   int              tau         = 120;
   MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0 );
@@ -52,7 +53,9 @@ void tune_params( const std::string& file_path )
 
               // Get Sortino ratio
               double sortino = strategy.get_sortino_ratio( T );
+              double PnL = strategy.get_PnL( T );
               std::cout << "Sortino Ratio: " << sortino << '\n';
+              std::cout << "PnL: " << PnL << " RUB\n";
 
               // Update best parameters if needed
               if ( sortino > best_sortino )
@@ -60,6 +63,12 @@ void tune_params( const std::string& file_path )
                 best_sortino = sortino;
                 best_params  = { { "a", a_values[i] }, { "beta", beta_values[j] }, { "alpha1", alpha1_values[k] }, { "alpha2", alpha2_values[l] }, { "alpha3", alpha3_values[m] }, { "alpha4", alpha4_values[n] } };
               }
+
+              if ( PnL > best_PnL )
+              {
+                best_PnL = PnL;
+              }
+
             }
           }
         }

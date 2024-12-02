@@ -31,7 +31,7 @@ private:
   double risk_control_;
   int    window_size_;
   int    tau_;
-  double trading_fee_ = 0.00025; // 0.025%
+  double trading_fee_ = 0.001; // 0.1%
 
 
 public:
@@ -166,7 +166,7 @@ public:
   double get_delta_PnL( int t1, int t2 )
   {
     double pos = get_position( t1 );
-    return pos * ( mid_px_[t2] - mid_px_[t1] * (1 + trading_fee_) );
+    return pos * ( mid_px_[t2] - mid_px_[t1]) - std::abs(pos) * trading_fee_ * mid_px_[t1];
   }
 
   double get_PnL( int T )

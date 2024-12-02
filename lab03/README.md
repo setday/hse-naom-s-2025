@@ -11,4 +11,4 @@
 - Test model out of sample (download and prepare test dataset)
 - ~~Quick fix for C++ version: parse data before fine-tuning rather than at each iteration!~~
 - Implement statistical tests (to distinguish between a real trend and mere chance)
-- Explore why Sortino Ratio explodes for small omega (window_size) [say ```window_size=100```]
+- ~~Explore why Sortino Ratio explodes for small omega (window_size) [say ```window_size=100```]~~
