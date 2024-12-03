@@ -4,5 +4,5 @@ or (better, but requires quick registration) from BI Angelite https://tickwize.a
 Data format:
 
 DATE,TIME,LAST,VOL,ID,OPER
-241101,09:59:44,123.8,10,11370547379,S
+20241101,09:59:44,123.8,10,11370547379,S
 ...

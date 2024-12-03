@@ -31,8 +31,11 @@ private:
   double risk_control_;
   int    window_size_;
   int    tau_;
-  double trading_fee_ = 0.001; // 0.1%
+  int    start_tau_;
+  double trading_fee_ = 0.0005; // 0.05%
+  double delta_ = 0.5;
 
+  std::vector<double> pos_history_;
 
 public:
   MomentumStrategy( std::vector<int>& sell_volume, std::vector<int>& buy_volume, std::vector<int>& volume, std::vector<double>& mid_px, int K = 144, double risk_control = 1, int window_size = 300, int tau = 60, double a = 0, double beta = 0, double alpha1 = 0, double alpha2 = 0, double alpha3 = 0, double alpha4 = 0 )
@@ -49,6 +52,7 @@ public:
     risk_control_ = risk_control;
     window_size_  = window_size;
     tau_          = tau;
+    start_tau_    = window_size_ * ( K_ + 2 );
 
     sell_volume_ = sell_volume;
     buy_volume_  = buy_volume;
@@ -62,11 +66,13 @@ public:
       volume_prefix_sum_.push_back( volume_[i] + volume_prefix_sum_.back() );
       buy_volume_prefix_sum_.push_back( buy_volume_[i] + buy_volume_prefix_sum_.back() );
     }
+
+    pos_history_.reserve(volume_.size());
   }
 
   double get_position( int t )
   {
-    if ( t == 0 )
+    if ( t == start_tau_ )
     {
       return 0;
     }
@@ -163,18 +169,46 @@ public:
     return x3_tilda_std / ( K_ - 1 );
   }
 
+  void compute_next_position( int t ) {
+    assert(!pos_history_.empty());
+
+    double pos = get_position( t );
+    double prev_pos = pos_history_.back();
+
+//    std::cout << std::abs(pos - prev_pos) << std::endl;
+
+    if (std::abs(pos - prev_pos) <= delta_) {
+      pos_history_.push_back(prev_pos);
+      return;
+    }
+
+    pos_history_.push_back(pos);
+  }
+
   double get_delta_PnL( int t1, int t2 )
   {
-    double pos = get_position( t1 );
-    return pos * ( mid_px_[t2] - mid_px_[t1]) - std::abs(pos) * trading_fee_ * mid_px_[t1];
+    int t1_pos = (t1 - start_tau_) / tau_;
+    int t2_pos = (t2 - start_tau_) / tau_;
+
+    assert( pos_history_.size() >= std::max( t1_pos , t2_pos ) );
+
+    double pos_t1 = pos_history_[ t1_pos ];
+    double pos_t2 = pos_history_[ t2_pos ];
+    double delta_pos = pos_t2 - pos_t1;
+
+    return pos_t1 * ( mid_px_[t2] - mid_px_[t1] ) - std::abs(delta_pos) * trading_fee_ * mid_px_[t2];
   }
 
   double get_PnL( int T )
   {
     double total_PnL = 0;
-    for ( int i = window_size_ * ( K_ + 1 ); i < T - tau_; i += tau_ )
+    for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
       total_PnL += get_delta_PnL( i, i + tau_ );
+//      if ( total_PnL <= -risk_control_ ) {
+//        std::cout << "Bankruptcy of a bot" << std::endl;
+//        break;
+//      }
     }
     return total_PnL;
   }
@@ -184,14 +218,25 @@ public:
   {
     double total_PnL    = 0;
     double max_drawdown = 0;
-    for ( int i = window_size_ * ( K_ + 1 ); i < T - tau_; i += tau_ )
+
+    pos_history_.clear();
+    pos_history_.push_back(0);
+
+    for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
-      double delta_pnl = get_delta_PnL( i, i + tau_ );
+      double delta_pnl;
+
+      compute_next_position( i + tau_ );
+
+      delta_pnl = get_delta_PnL( i, i + tau_ );
       total_PnL += delta_pnl;
       if ( total_PnL < 0 )
       {
         max_drawdown = std::max( max_drawdown, -total_PnL );
       }
+//      if ( total_PnL <= -risk_control_ ) {
+//        break;
+//      }
     }
     if ( max_drawdown == 0 )
     {

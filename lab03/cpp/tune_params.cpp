@@ -9,13 +9,14 @@
 void tune_params( const std::string& file_path )
 {
   // Define parameter grids
-  std::vector<double> a_values      = { 2, 2.5, 3 };
-  std::vector<double> beta_values   = { 1, 2, 3, 4, 5 };
-  std::vector<double> alpha1_values = { 1, 3, 5 };
-  std::vector<double> alpha2_values = { 1, 3, 5 };
-  std::vector<double> alpha3_values = { 1, 3, 5 };
-  std::vector<double> alpha4_values = { 1, 3, 5 };
+  std::vector<double> a_values      = { 4.5, 4, 5 };
+  std::vector<double> beta_values   = { 3 };
+  std::vector<double> alpha1_values = { 4.5, 4, 5 };
+  std::vector<double> alpha2_values = { -5, -4, -6 };
+  std::vector<double> alpha3_values = { -1, 0, -2 };
+  std::vector<double> alpha4_values =  { -10, -9, -8 };
 
+//  Best Parameters: alpha4=3 alpha3=-1 alpha2=-1 alpha1=5 beta=5 a=3
 
   // Iterate through all parameter combinations
   double                                  best_sortino = -std::numeric_limits<double>::infinity();
@@ -24,44 +25,45 @@ void tune_params( const std::string& file_path )
 
   Records data;
   parseCSV( file_path, data );
-  int              K           = 144;
-  float            M           = 10'000;
-  int              window_size = 300;
-  int              tau         = 120;
+  int              K           = 150;
+  float            M           = 1;
+  int              window_size = 500;
+  int              tau         = 60;
   MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0 );
   int              T = data.mid_px.size();
 
-  for ( size_t j = 0; j < beta_values.size(); ++j )
+  for (double & beta_value : beta_values)
   {
-    for ( size_t i = 0; i < a_values.size(); ++i )
+    for (double & a_value : a_values)
     {
-      for ( size_t k = 0; k < alpha1_values.size(); ++k )
+      for (double & alpha1_value : alpha1_values)
       {
-        for ( size_t l = 0; l < alpha2_values.size(); ++l )
+        for (double & alpha2_value : alpha2_values)
         {
-          for ( size_t m = 0; m < alpha3_values.size(); ++m )
+          for (double & alpha3_value : alpha3_values)
           {
-            for ( size_t n = 0; n < alpha4_values.size(); ++n )
+            for (double & alpha4_value : alpha4_values)
             {
               // Create strategy with current parameter set
-              strategy.a_      = a_values[i];
-              strategy.beta_   = beta_values[j];
-              strategy.alpha1_ = alpha1_values[k];
-              strategy.alpha2_ = alpha2_values[l];
-              strategy.alpha3_ = alpha3_values[m];
-              strategy.alpha4_ = alpha4_values[n];
+              strategy.a_      = a_value;
+              strategy.beta_   = beta_value;
+              strategy.alpha1_ = alpha1_value;
+              strategy.alpha2_ = alpha2_value;
+              strategy.alpha3_ = alpha3_value;
+              strategy.alpha4_ = alpha4_value;
 
               // Get Sortino ratio
               double sortino = strategy.get_sortino_ratio( T );
+
               double PnL = strategy.get_PnL( T );
               std::cout << "Sortino Ratio: " << sortino << '\n';
               std::cout << "PnL: " << PnL << " RUB\n";
 
-              // Update best parameters if needed
+              // Update the best parameters if needed
               if ( sortino > best_sortino )
               {
                 best_sortino = sortino;
-                best_params  = { { "a", a_values[i] }, { "beta", beta_values[j] }, { "alpha1", alpha1_values[k] }, { "alpha2", alpha2_values[l] }, { "alpha3", alpha3_values[m] }, { "alpha4", alpha4_values[n] } };
+                best_params  = { { "a", a_value }, { "beta", beta_value }, { "alpha1", alpha1_value }, { "alpha2", alpha2_value }, { "alpha3", alpha3_value }, { "alpha4", alpha4_value } };
               }
 
               if ( PnL > best_PnL )
@@ -87,6 +89,6 @@ void tune_params( const std::string& file_path )
 
 int main()
 {
-  tune_params( "../data/train.csv" );
+  tune_params( "lab03/data/train.csv" );
   return 0;
 }
