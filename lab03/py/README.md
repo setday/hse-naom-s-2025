@@ -4,4 +4,4 @@
 > ## Python implementation is outdated.
 
 > [!NOTE]  
-> Use ```preprocess_data.ipynb``` to create a dataset and then refer to ```cpp/MS.cpp```
+> Use ```lab03/data/create_train.py``` to create a dataset and then refer to ```lab03/cpp/MS.cpp```

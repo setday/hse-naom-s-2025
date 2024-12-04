@@ -1,8 +1,0 @@
-Download some market data from FINAM (https://www.finam.ru/quote/moex/gazp/export/)
-or (better, but requires quick registration) from BI Angelite https://tickwize.angelitrade.com/
-
-Data format:
-
-DATE,TIME,LAST,VOL,ID,OPER
-20241101,09:59:44,123.8,10,11370547379,S
-...

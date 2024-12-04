@@ -1,4 +1,3 @@
-#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -16,6 +15,7 @@ public:
   double alpha2_;
   double alpha3_;
   double alpha4_;
+  double delta_;
 
 private:
   std::vector<int>    sell_volume_;
@@ -32,13 +32,12 @@ private:
   int    window_size_;
   int    tau_;
   int    start_tau_;
-  double trading_fee_ = 0.0005; // 0.05%
-  double delta_ = 0.5;
+  double trading_fee_ = 0.0003; // 0.03%
 
   std::vector<double> pos_history_;
 
 public:
-  MomentumStrategy( std::vector<int>& sell_volume, std::vector<int>& buy_volume, std::vector<int>& volume, std::vector<double>& mid_px, int K = 144, double risk_control = 1, int window_size = 300, int tau = 60, double a = 0, double beta = 0, double alpha1 = 0, double alpha2 = 0, double alpha3 = 0, double alpha4 = 0 )
+  MomentumStrategy( std::vector<int>& sell_volume, std::vector<int>& buy_volume, std::vector<int>& volume, std::vector<double>& mid_px, int K = 144, double risk_control = 1, int window_size = 300, int tau = 60, double a = 0, double beta = 0, double alpha1 = 0, double alpha2 = 0, double alpha3 = 0, double alpha4 = 0, double delta = 0.5 )
   {
     // Initialize params and hyperparams
     a_      = a;
@@ -47,6 +46,7 @@ public:
     alpha2_ = alpha2;
     alpha3_ = alpha3;
     alpha4_ = alpha4;
+    delta_ = delta;
 
     K_            = K;
     risk_control_ = risk_control;
@@ -67,7 +67,7 @@ public:
       buy_volume_prefix_sum_.push_back( buy_volume_[i] + buy_volume_prefix_sum_.back() );
     }
 
-    pos_history_.reserve(volume_.size());
+    pos_history_.reserve( volume_.size() );
   }
 
   double get_position( int t )
@@ -96,7 +96,12 @@ public:
 
   double get_x1( int t )
   {
-    return get_mu( t ) / get_mu_std( t );
+    double mu_std = get_mu_std( t );
+    if ( mu_std == 0 )
+    {
+      return 0;
+    }
+    return get_mu( t ) / mu_std;
   }
 
   double get_x2( int t )
@@ -107,7 +112,12 @@ public:
 
   double get_x3( int t )
   {
-    return get_x3_tilda( t ) / get_x3_tilda_std( t );
+    double x3_tilda_std = get_x3_tilda_std( t );
+    if ( x3_tilda_std == 0 )
+    {
+      return 0;
+    }
+    return get_x3_tilda( t ) / x3_tilda_std;
   }
 
   double get_x4( int t )
@@ -169,59 +179,65 @@ public:
     return x3_tilda_std / ( K_ - 1 );
   }
 
-  void compute_next_position( int t ) {
-    assert(!pos_history_.empty());
-
-    double pos = get_position( t );
+  void compute_next_position( int t )
+  {
+    double pos      = get_position( t );
     double prev_pos = pos_history_.back();
 
-//    std::cout << std::abs(pos - prev_pos) << std::endl;
 
-    if (std::abs(pos - prev_pos) <= delta_) {
-      pos_history_.push_back(prev_pos);
+    if ( std::abs( pos - prev_pos ) < delta_ )
+    {
+      pos_history_.push_back( prev_pos );
       return;
     }
 
-    pos_history_.push_back(pos);
+    pos_history_.push_back( pos );
   }
 
   double get_delta_PnL( int t1, int t2 )
   {
-    int t1_pos = (t1 - start_tau_) / tau_;
-    int t2_pos = (t2 - start_tau_) / tau_;
+    int t1_pos = ( t1 - start_tau_ ) / tau_;
+    int t2_pos = ( t2 - start_tau_ ) / tau_;
 
-    assert( pos_history_.size() >= std::max( t1_pos , t2_pos ) );
-
-    double pos_t1 = pos_history_[ t1_pos ];
-    double pos_t2 = pos_history_[ t2_pos ];
+    double pos_t1    = pos_history_[t1_pos];
+    double pos_t2    = pos_history_[t2_pos];
     double delta_pos = pos_t2 - pos_t1;
 
-    return pos_t1 * ( mid_px_[t2] - mid_px_[t1] ) - std::abs(delta_pos) * trading_fee_ * mid_px_[t2];
+    return pos_t1 * ( mid_px_[t2] - mid_px_[t1] ) - std::abs( delta_pos ) * trading_fee_ * mid_px_[t2];
   }
 
   double get_PnL( int T )
   {
     double total_PnL = 0;
+    pos_history_.clear();
+    pos_history_.push_back( 0 );
+
+#pragma acc parallel loop reduction( + \
+                                     : total_PnL )
     for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
-      total_PnL += get_delta_PnL( i, i + tau_ );
-//      if ( total_PnL <= -risk_control_ ) {
-//        std::cout << "Bankruptcy of a bot" << std::endl;
-//        break;
-//      }
+      double delta_pnl;
+      compute_next_position( i + tau_ );
+
+      delta_pnl = get_delta_PnL( i, i + tau_ );
+      total_PnL += delta_pnl;
     }
+
     return total_PnL;
   }
 
 public:
+  // Compute Sortino ratio
   double get_sortino_ratio( int T )
   {
     double total_PnL    = 0;
     double max_drawdown = 0;
 
     pos_history_.clear();
-    pos_history_.push_back(0);
+    pos_history_.push_back( 0 );
 
+#pragma acc parallel loop reduction( + \
+                                     : total_PnL, max_drawdown )
     for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
       double delta_pnl;
@@ -234,14 +250,13 @@ public:
       {
         max_drawdown = std::max( max_drawdown, -total_PnL );
       }
-//      if ( total_PnL <= -risk_control_ ) {
-//        break;
-//      }
     }
+
     if ( max_drawdown == 0 )
     {
       std::cout << "WARNING: Zero Drawdown!" << '\n';
     }
+
     return total_PnL / max_drawdown;
   }
 };
