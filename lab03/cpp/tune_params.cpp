@@ -11,12 +11,18 @@ void tune_params( const std::string& file_path )
 {
   // Define parameter grids
   std::vector<double> a_values      = { 2, 3, 4 };
-  std::vector<double> beta_values   = { 2, 3, 4, 5, 7, 10 };
-  std::vector<double> alpha1_values = { -1, 2, 3, 4, 5, 6, 10 };
-  std::vector<double> alpha2_values = { -1, 2, 3, 4, 5, 6, 10 };
-  std::vector<double> alpha3_values = { -1, 2, 3, 4, 5, 6, 10 };
-  std::vector<double> alpha4_values = { -1, 2, 3, 4, 5, 6, 10 };
-  std::vector<double> delta_values  = { 0.1, 0.2, 0.3, 0.4, 0.5 };
+  std::vector<double> beta_values   = { 2, 3, 10 };
+  std::vector<double> alpha1_values = { -1, 3, 5 };
+  std::vector<double> alpha2_values = { -1, 3, 5 };
+  std::vector<double> alpha3_values = { -1, 3, 5 };
+  std::vector<double> alpha4_values = { -1, 3, 5 };
+
+  std::vector<double> alpha5_values = { -1, 3, 5 };
+  std::vector<double> alpha6_values = { -1, 3, 5 };
+  std::vector<double> alpha7_values = { -1, 3, 5 };
+  std::vector<double> alpha8_values = { -1, 3, 5 };
+
+  std::vector<double> delta_values = { 0.3, 0.4, 0.5 };
 
   Records data;
   parseCSV( file_path, data );
@@ -24,7 +30,7 @@ void tune_params( const std::string& file_path )
   float            M           = 100;
   int              window_size = 300;
   int              tau         = 120;
-  MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0 );
+  MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
   int              T = data.mid_px.size();
 
   // Open the CSV file for logging
@@ -36,7 +42,7 @@ void tune_params( const std::string& file_path )
   }
 
   // Write the header to the CSV file
-  log_file << "a,beta,alpha1,alpha2,alpha3,alpha4,SortinoRatio\n";
+  log_file << "a,beta,alpha1,alpha2,alpha3,alpha4,alpha5,alpha6,alpha7,alpha8,SortinoRatio\n";
 
   for ( auto delta : delta_values )
   {
@@ -52,28 +58,52 @@ void tune_params( const std::string& file_path )
             {
               for ( auto alpha4 : alpha4_values )
               {
-                // Set current parameters
-                strategy.a_      = a;
-                strategy.beta_   = beta;
-                strategy.alpha1_ = alpha1;
-                strategy.alpha2_ = alpha2;
-                strategy.alpha3_ = alpha3;
-                strategy.alpha4_ = alpha4;
-                strategy.delta_  = delta;
-
-                // Get Sortino ratio
-                double sortino = strategy.get_sortino_ratio( T );
-
-                if ( sortino > 0 )
+                for ( auto alpha5 : alpha5_values )
                 {
-                  // Log the parameters and Sortino ratio to the CSV file
-                  log_file << strategy.a_ << ","
-                           << strategy.beta_ << ","
-                           << strategy.alpha1_ << ","
-                           << strategy.alpha2_ << ","
-                           << strategy.alpha3_ << ","
-                           << strategy.alpha4_ << ","
-                           << sortino << "\n";
+                  for ( auto alpha6 : alpha6_values )
+                  {
+                    for ( auto alpha7 : alpha7_values )
+                    {
+                      for ( auto alpha8 : alpha8_values )
+                      {
+                        // Set current parameters
+                        strategy.a_      = a;
+                        strategy.beta_   = beta;
+                        strategy.alpha1_ = alpha1;
+                        strategy.alpha2_ = alpha2;
+                        strategy.alpha3_ = alpha3;
+                        strategy.alpha4_ = alpha4;
+
+                        strategy.alpha5_ = alpha5;
+                        strategy.alpha6_ = alpha6;
+                        strategy.alpha7_ = alpha7;
+                        strategy.alpha8_ = alpha8;
+
+                        strategy.delta_ = delta;
+
+                        // Get Sortino ratio
+                        double sortino = strategy.get_sortino_ratio( T );
+                        std::cout << sortino << '\n';
+                        if ( sortino > 0 )
+                        {
+                          // Log the parameters and Sortino ratio to the CSV file
+                          log_file << strategy.a_ << ","
+                                   << strategy.beta_ << ","
+                                   << strategy.alpha1_ << ","
+                                   << strategy.alpha2_ << ","
+                                   << strategy.alpha3_ << ","
+                                   << strategy.alpha4_ << ","
+
+                                   << strategy.alpha5_ << ","
+                                   << strategy.alpha6_ << ","
+                                   << strategy.alpha7_ << ","
+                                   << strategy.alpha8_ << ","
+
+                                   << sortino << "\n";
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

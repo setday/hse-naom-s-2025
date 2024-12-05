@@ -15,6 +15,12 @@ public:
   double alpha2_;
   double alpha3_;
   double alpha4_;
+
+  double alpha5_;
+  double alpha6_;
+  double alpha7_;
+  double alpha8_;
+
   double delta_;
 
 private:
@@ -32,12 +38,12 @@ private:
   int    window_size_;
   int    tau_;
   int    start_tau_;
-  double trading_fee_ = 0.0003; // 0.03%
+  double trading_fee_ = 0.003; // 0.03%
 
   std::vector<double> pos_history_;
 
 public:
-  MomentumStrategy( std::vector<int>& sell_volume, std::vector<int>& buy_volume, std::vector<int>& volume, std::vector<double>& mid_px, int K = 144, double risk_control = 1, int window_size = 300, int tau = 60, double a = 0, double beta = 0, double alpha1 = 0, double alpha2 = 0, double alpha3 = 0, double alpha4 = 0, double delta = 0.5 )
+  MomentumStrategy( std::vector<int>& sell_volume, std::vector<int>& buy_volume, std::vector<int>& volume, std::vector<double>& mid_px, int K = 144, double risk_control = 1, int window_size = 300, int tau = 60, double a = 0, double beta = 0, double alpha1 = 0, double alpha2 = 0, double alpha3 = 0, double alpha4 = 0, double delta = 0.5, double alpha5 = 0, double alpha6 = 0, double alpha7 = 0, double alpha8 = 0 )
   {
     // Initialize params and hyperparams
     a_      = a;
@@ -46,6 +52,11 @@ public:
     alpha2_ = alpha2;
     alpha3_ = alpha3;
     alpha4_ = alpha4;
+    alpha5_ = alpha5;
+    alpha6_ = alpha6;
+    alpha7_ = alpha7;
+    alpha8_ = alpha8;
+
     delta_ = delta;
 
     K_            = K;
@@ -90,8 +101,16 @@ public:
 
   double get_x( int t )
   {
-    return alpha1_ * get_x1( t ) + alpha2_ * get_x2( t ) +
-           alpha3_ * get_x3( t ) + alpha4_ * get_x4( t );
+    double x1 = get_x1( t );
+    double x2 = get_x2( t );
+    double x3 = get_x3( t );
+    double x4 = get_x4( t );
+
+    return alpha1_ * x1 + alpha2_ * x2 +
+           alpha3_ * x3 + alpha4_ * x4 +
+
+           alpha5_ * std::log( std::abs( x1 ) + 1e16 ) + alpha6_ * std::log( std::abs( x2 ) + 1e16 ) +
+           alpha7_ * std::log( std::abs( x3 ) + 1e16 ) + alpha8_ * std::log( std::abs( x4 ) + 1e16 );
   }
 
   double get_x1( int t )
