@@ -23,7 +23,7 @@ public:
 
   double delta_;
 
-private:
+public:
   std::vector<int>    sell_volume_;
   std::vector<int>    buy_volume_;
   std::vector<double> mid_px_;
@@ -31,6 +31,7 @@ private:
 
   std::vector<int> volume_prefix_sum_;
   std::vector<int> buy_volume_prefix_sum_;
+  int              n_transactions_;
 
   // Hyperparameters
   int    K_;
@@ -38,7 +39,8 @@ private:
   int    window_size_;
   int    tau_;
   int    start_tau_;
-  double trading_fee_ = 0.003; // 0.03%
+  double trading_fee_ = 0.0003; // 0.03%
+
 
   std::vector<double> pos_history_;
 
@@ -77,8 +79,6 @@ public:
       volume_prefix_sum_.push_back( volume_[i] + volume_prefix_sum_.back() );
       buy_volume_prefix_sum_.push_back( buy_volume_[i] + buy_volume_prefix_sum_.back() );
     }
-
-    pos_history_.reserve( volume_.size() );
   }
 
   double get_position( int t )
@@ -106,11 +106,9 @@ public:
     double x3 = get_x3( t );
     double x4 = get_x4( t );
 
-    return alpha1_ * x1 + alpha2_ * x2 +
-           alpha3_ * x3 + alpha4_ * x4 +
-
-           alpha5_ * std::log( std::abs( x1 ) + 1e16 ) + alpha6_ * std::log( std::abs( x2 ) + 1e16 ) +
-           alpha7_ * std::log( std::abs( x3 ) + 1e16 ) + alpha8_ * std::log( std::abs( x4 ) + 1e16 );
+    return alpha1_ * x1 + alpha2_ * x2 + alpha3_ * x3 + alpha4_ * x4 +
+           alpha5_ * std::exp( x1 ) + alpha6_ * std::exp( x2 ) +
+           alpha7_ * std::exp( x3 ) + alpha8_ * std::exp( x4 );
   }
 
   double get_x1( int t )
@@ -150,7 +148,8 @@ public:
     double sigma_squared = 0;
     for ( int i = t; i > t - window_size_; --i )
     {
-      sigma_squared += std::log( mid_px_[i] / mid_px_[i - 1] ) * std::log( mid_px_[i] / mid_px_[i - 1] );
+      // sigma_squared += std::log( mid_px_[i] / mid_px_[i - 1] ) * std::log( mid_px_[i] / mid_px_[i - 1] );
+      sigma_squared += ( mid_px_[i] - mid_px_[i - 1] ) * ( mid_px_[i] - mid_px_[i - 1] );
     }
     return sigma_squared / window_size_;
   }
@@ -200,17 +199,19 @@ public:
 
   void compute_next_position( int t )
   {
-    double pos      = get_position( t );
-    double prev_pos = pos_history_.back();
+    int    pos_idx  = ( t - start_tau_ ) / tau_;
+    double pos      = pos_history_[pos_idx];
+    double prev_pos = pos_history_[pos_idx - 1];
 
 
     if ( std::abs( pos - prev_pos ) < delta_ )
     {
-      pos_history_.push_back( prev_pos );
+      pos_history_[pos_idx] = prev_pos;
       return;
     }
 
-    pos_history_.push_back( pos );
+    n_transactions_ += 1;
+    pos_history_[pos_idx] = pos;
   }
 
   double get_delta_PnL( int t1, int t2 )
@@ -228,11 +229,16 @@ public:
   double get_PnL( int T )
   {
     double total_PnL = 0;
+    n_transactions_  = 0;
     pos_history_.clear();
-    pos_history_.push_back( 0 );
+    pos_history_.reserve( ( volume_.size() - start_tau_ ) / tau_ + 1 );
+    pos_history_[0] = 0;
 
-#pragma acc parallel loop reduction( + \
-                                     : total_PnL )
+    for ( int i = start_tau_; i < T - tau_; i += tau_ )
+    {
+      pos_history_[( i - start_tau_ ) / tau_] = get_position( i );
+    }
+
     for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
       double delta_pnl;
@@ -251,20 +257,24 @@ public:
   {
     double total_PnL    = 0;
     double max_drawdown = 0;
-
+    n_transactions_     = 0;
     pos_history_.clear();
-    pos_history_.push_back( 0 );
+    pos_history_.reserve( ( volume_.size() - start_tau_ ) / tau_ + 10 );
+    pos_history_[0] = 0;
 
-#pragma acc parallel loop reduction( + \
-                                     : total_PnL, max_drawdown )
+    for ( int i = start_tau_; i < T - tau_; i += tau_ )
+    {
+      pos_history_[( i - start_tau_ ) / tau_] = get_position( i );
+    }
+
     for ( int i = start_tau_; i < T - tau_; i += tau_ )
     {
       double delta_pnl;
-
       compute_next_position( i + tau_ );
-
       delta_pnl = get_delta_PnL( i, i + tau_ );
+
       total_PnL += delta_pnl;
+
       if ( total_PnL < 0 )
       {
         max_drawdown = std::max( max_drawdown, -total_PnL );
@@ -275,7 +285,6 @@ public:
     {
       std::cout << "WARNING: Zero Drawdown!" << '\n';
     }
-
     return total_PnL / max_drawdown;
   }
 };

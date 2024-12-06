@@ -78,7 +78,8 @@ def process_market_data(input_file: str, output_file: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 create_train.py <input_file_path>")
+        print("Usage: python3 create_train.py data/<filename>.csv")
     else:
         input_file = sys.argv[1]
-        process_market_data(input_file, output_file="train.csv")
+        process_market_data(input_file, output_file=f"{input_file[:-4]}_train.csv")
+        print(f"file {input_file[:-4]}_train.csv was created!")

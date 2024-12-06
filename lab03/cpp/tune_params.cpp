@@ -1,5 +1,6 @@
 #include "MS.hpp"
 #include "parse_data.hpp"
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -10,25 +11,25 @@
 void tune_params( const std::string& file_path )
 {
   // Define parameter grids
-  std::vector<double> a_values      = { 2, 3, 4 };
-  std::vector<double> beta_values   = { 2, 3, 10 };
-  std::vector<double> alpha1_values = { -1, 3, 5 };
-  std::vector<double> alpha2_values = { -1, 3, 5 };
-  std::vector<double> alpha3_values = { -1, 3, 5 };
-  std::vector<double> alpha4_values = { -1, 3, 5 };
+  std::vector<double> a_values      = { 2, 3 };
+  std::vector<double> beta_values   = { 2, 5, 8 };
+  std::vector<double> alpha1_values = { 1, 3, 5 };
+  std::vector<double> alpha2_values = { 1, 3, 5 };
+  std::vector<double> alpha3_values = { 1, 3, 5 };
+  std::vector<double> alpha4_values = { 1, 3, 5 };
 
-  std::vector<double> alpha5_values = { -1, 3, 5 };
-  std::vector<double> alpha6_values = { -1, 3, 5 };
-  std::vector<double> alpha7_values = { -1, 3, 5 };
-  std::vector<double> alpha8_values = { -1, 3, 5 };
+  std::vector<double> alpha5_values = { 1, 3, 5 };
+  std::vector<double> alpha6_values = { 1, 3, 5 };
+  std::vector<double> alpha7_values = { 1, 3, 5 };
+  std::vector<double> alpha8_values = { 1, 3, 5 };
 
-  std::vector<double> delta_values = { 0.3, 0.4, 0.5 };
+  std::vector<double> delta_values = { 1e-4 };
 
   Records data;
   parseCSV( file_path, data );
-  int              K           = 144;
-  float            M           = 100;
-  int              window_size = 300;
+  int              K           = 72;
+  float            M           = 1;
+  int              window_size = 120;
   int              tau         = 120;
   MomentumStrategy strategy( data.sell_volume, data.buy_volume, data.volume, data.mid_px, K, M, window_size, tau, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
   int              T = data.mid_px.size();
@@ -83,22 +84,19 @@ void tune_params( const std::string& file_path )
 
                         // Get Sortino ratio
                         double sortino = strategy.get_sortino_ratio( T );
-                        std::cout << sortino << '\n';
-                        if ( sortino > 0 )
+
+                        std::cout << "Sortino: " << sortino << ' ' << '|' << strategy.n_transactions_ << " trades\n";
                         {
-                          // Log the parameters and Sortino ratio to the CSV file
                           log_file << strategy.a_ << ","
                                    << strategy.beta_ << ","
                                    << strategy.alpha1_ << ","
                                    << strategy.alpha2_ << ","
                                    << strategy.alpha3_ << ","
                                    << strategy.alpha4_ << ","
-
                                    << strategy.alpha5_ << ","
                                    << strategy.alpha6_ << ","
                                    << strategy.alpha7_ << ","
                                    << strategy.alpha8_ << ","
-
                                    << sortino << "\n";
                         }
                       }
@@ -117,8 +115,15 @@ void tune_params( const std::string& file_path )
   log_file.close();
 }
 
-int main()
+int main( int argc, char* argv[] )
 {
-  tune_params( "../data/train.csv" );
+  if ( argc != 2 ) // Expecting exactly 2 arguments (program name + file path)
+  {
+    std::cout << "Usage: ./train.exe data/<filename>.csv\n";
+    return 1;
+  }
+
+  tune_params( argv[1] );
+
   return 0;
 }

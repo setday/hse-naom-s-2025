@@ -22,7 +22,7 @@ $ export MANPATH=$MANPATH:$NVCOMPILERS/$NVARCH/24.11/comm_libs/mpi/man
 - Compile and run the code:
 
 ```bash
-nvc++ -acc tune_params.cpp -o train.exe
+nvc++ -acc cpp/tune_params.cpp -o train.exe
 ./train.exe
 ```
 
