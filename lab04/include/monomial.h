@@ -15,13 +15,7 @@ struct Monomial
   T coeff;
   size_t powers[MAX_VARS]{};
 
-  Monomial() : coeff(0)
-  {
-    for (unsigned long long & power : powers)
-    {
-      power = 0;
-    }
-  }
+  Monomial() : coeff() { }
 
   Monomial(T c, size_t n, const size_t* p) : coeff(c)
   {
