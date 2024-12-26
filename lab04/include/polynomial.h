@@ -20,11 +20,12 @@ struct MonomialPointer {
 
   size_t current;
 
-  MonomialPointer(const Monomial<T>* m_, size_t n_, size_t current_) : m(m_), n(n_), current(current_) {
-    assert(current < n);
-  }
+  MonomialPointer(const Monomial<T>* m_, size_t n_, size_t current_) : m(m_), n(n_), current(current_) {}
 
   Monomial<T> get_val() const {
+    if (current >= n) {
+      return Monomial<T>();
+    }
     return m[current];
   }
 
@@ -33,7 +34,6 @@ struct MonomialPointer {
   }
 
   MonomialPointer<T> prev() const {
-    assert(current > 0);
     return MonomialPointer<T>(m, n, current - 1);
   }
 
@@ -64,6 +64,7 @@ struct Polynomial
     }
 
     sort();
+    normalize();
   }
 
   MonomialPointer<T> leading_term() const {
@@ -78,6 +79,17 @@ struct Polynomial
   void sort()
   {
     std::sort(terms, terms + n_terms, std::greater<Monomial<T>>());
+  }
+
+  void normalize()
+  {
+    T ld_coeff = terms[0].coeff;
+
+    terms[0].coeff = 1;
+    for (size_t i = 1; i < n_terms; i++)
+    {
+      terms[i].coeff /= ld_coeff;
+    }
   }
 
   [[nodiscard]] bool is_zero() const
@@ -238,6 +250,10 @@ std::ostream& operator<<(std::ostream& os, const Polynomial<T>& p)
     {
       os << " + ";
     }
+  }
+  if (p.n_terms == 0)
+  {
+    os << "0";
   }
   return os;
 }

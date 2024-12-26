@@ -16,10 +16,12 @@ int main()
 
   std::vector<Polynomial<double>> ps = {
       { 2, ms },
-      { 2, ms + 2 },
-  }; // 3x + y, 0.5xy + x^2
+      { 2, ms + 1 },
+  }; // 3x + y, 0.5xy + 3x
 
-  Polynomial<double> p;
+  Polynomial<double> p = {
+      4, ms
+  }; // x^2 + 0.5xy + 3x + y
 
   bool RedFlag = false;
 
@@ -39,6 +41,8 @@ int main()
   {
     std::cout << pol << '\n';
   }
+
+  std::cout << "\nReduced polynomial:\n" << p << '\n';
 
   return 0;
 }

@@ -43,8 +43,33 @@ void ReduceWrtNSet(Polynomial<T>& p, const std::vector<Polynomial<T>>& N, bool& 
   }
 
   if (!p.is_zero()) {
-    p.sort();
+    p.normalize();
   }
+}
+
+template <typename T>
+void ReduceWrtEachOther(std::vector<Polynomial<T>>& N) {
+  bool NO_Reductions;
+
+  do {
+    NO_Reductions = true;
+
+    for (auto it = N.begin(); it != N.end(); ) {
+      Polynomial<T> p = *it;
+      it = N.erase(it);
+
+      bool RedFlag;
+      ReduceWrtNSet(p, N, RedFlag);
+
+      if (!p.is_zero()) {
+        N.push_back(p);
+      }
+
+      if (RedFlag) {
+        NO_Reductions = false;
+      }
+    }
+  } while (!NO_Reductions);
 }
 
 template <typename T>
