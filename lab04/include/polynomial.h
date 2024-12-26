@@ -58,6 +58,8 @@ struct Polynomial
     {
       terms[i] = t[i];
     }
+
+    sort();
   }
 
   MonomialPointer<T> leading_term() const {
