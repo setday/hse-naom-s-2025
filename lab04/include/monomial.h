@@ -101,6 +101,12 @@ struct Monomial
 };
 
 template <typename T>
+Monomial<T> operator*(T c, const Monomial<T>& m)
+{
+  return Monomial<T>(c * m.coeff, MAX_VARS, m.powers);
+}
+
+template <typename T>
 bool operator>(const Monomial<T>& zeta, const Monomial<T>& nu)
 {
   // L (Lexicographic order)
@@ -113,6 +119,12 @@ bool operator>(const Monomial<T>& zeta, const Monomial<T>& nu)
     return zeta.powers[i] > nu.powers[i];
   }
   return false;
+}
+
+template <typename T>
+bool operator<(const Monomial<T>& zeta, const Monomial<T>& nu)
+{
+  return nu > zeta;
 }
 
 template <typename T>

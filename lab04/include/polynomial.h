@@ -15,17 +15,16 @@ constexpr size_t MAX_TERMS = 32;
 
 template <typename T>
 struct MonomialPointer {
-  Monomial<T>* m;
+  const Monomial<T>* m;
   size_t n;
 
   size_t current;
 
-  MonomialPointer(Monomial<T>* m_, size_t n_, size_t current_) : m(m_), n(n_), current(current_) {
+  MonomialPointer(const Monomial<T>* m_, size_t n_, size_t current_) : m(m_), n(n_), current(current_) {
     assert(current < n);
-    assert(current >= 0);
   }
 
-  Monomial<T> operator*() const {
+  Monomial<T> get_val() const {
     return m[current];
   }
 
@@ -34,7 +33,12 @@ struct MonomialPointer {
   }
 
   MonomialPointer<T> prev() const {
+    assert(current > 0);
     return MonomialPointer<T>(m, n, current - 1);
+  }
+
+  const Monomial<T> * operator->() const {
+    return m + current;
   }
 };
 
@@ -212,6 +216,17 @@ struct Polynomial
     return a;
   }
 };
+
+template <typename T>
+Polynomial<T> operator*(const Monomial<T>& m, const Polynomial<T>& p)
+{
+  Polynomial<T> q;
+  for (size_t i = 0; i < p.n_terms; i++)
+  {
+    q.append(m * p.terms[i]);
+  }
+  return q;
+}
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const Polynomial<T>& p)
