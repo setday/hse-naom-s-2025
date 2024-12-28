@@ -96,11 +96,7 @@ template <typename T>
 bool SkipDt2(const Polynomial<T>& f, const Polynomial<T>& g, const std::vector<Polynomial<T>>& BG, const Monomial<T>& LCM) {
   for (const auto& h : BG) {
     Monomial<T> h_LT_val = h.leading_term().get_val();
-    if (!h_LT_val.divides(LCM) || h > f)
-    {
-      continue;
-    }
-    if (h < f || f < g)
+    if (!h_LT_val.divides(LCM))
     {
       return true;
     }
@@ -151,21 +147,10 @@ void GComplete(const std::vector<Polynomial<T>>& G, std::vector<Polynomial<T>>& 
     }
 
     s.normalize();
-
-    bool skip_pair = false;
-    for (const auto& h : BG) {
-      if (h == s) {
-        skip_pair = true;
-        break;
-      }
-    }
-    if (skip_pair) {
-      continue;
-    }
-
     BG.push_back(s);
 
     for (const auto& h : BG) {
+      LCM = s.leading_term().get_val().lcm(h.leading_term().get_val());
       if (!(h == s) && !SkipDt1(h, s, LCM) && !SkipDt2(h, s, BG, LCM)) {
         CP.push(std::make_pair(h, s));
       }
