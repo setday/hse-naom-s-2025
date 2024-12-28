@@ -85,22 +85,15 @@ Polynomial<T> SPoly(const Polynomial<T>& f, const Polynomial<T>& g) {
 }
 
 template <typename T>
-bool SkipDt1(const Polynomial<T>& f, const Polynomial<T>& g) {
+bool SkipDt1(const Polynomial<T>& f, const Polynomial<T>& g, const Monomial<T>& LCM) {
   Monomial<T> f_LT_val = f.leading_term().get_val();
   Monomial<T> g_LT_val = g.leading_term().get_val();
-
-  Monomial<T> LCM = f_LT_val.lcm(g_LT_val);
 
   return LCM == f_LT_val * g_LT_val;
 }
 
 template <typename T>
-bool SkipDt2(const Polynomial<T>& f, const Polynomial<T>& g, const std::vector<Polynomial<T>>& BG) {
-  Monomial<T> f_LT_val = f.leading_term().get_val();
-  Monomial<T> g_LT_val = g.leading_term().get_val();
-
-  Monomial<T> LCM = f_LT_val.lcm(g_LT_val);
-
+bool SkipDt2(const Polynomial<T>& f, const Polynomial<T>& g, const std::vector<Polynomial<T>>& BG, const Monomial<T>& LCM) {
   for (const auto& h : BG) {
     Monomial<T> h_LT_val = h.leading_term().get_val();
     if (!h_LT_val.divides(LCM) || h > f)
@@ -143,7 +136,9 @@ void GComplete(const std::vector<Polynomial<T>>& G, std::vector<Polynomial<T>>& 
     auto [f, g] = CP.top();
     CP.pop();
 
-    if (SkipDt2(f, g, BG)) {
+    Monomial<T> LCM = f.leading_term().get_val().lcm(g.leading_term().get_val());
+
+    if (SkipDt2(f, g, BG, LCM)) {
       continue;
     }
 
@@ -171,7 +166,7 @@ void GComplete(const std::vector<Polynomial<T>>& G, std::vector<Polynomial<T>>& 
     BG.push_back(s);
 
     for (const auto& h : BG) {
-      if (!(h == s) && !SkipDt1(h, s) && !SkipDt2(h, s, BG)) {
+      if (!(h == s) && !SkipDt1(h, s, LCM) && !SkipDt2(h, s, BG, LCM)) {
         CP.push(std::make_pair(h, s));
       }
     }
