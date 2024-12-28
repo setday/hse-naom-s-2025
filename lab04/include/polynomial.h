@@ -227,6 +227,47 @@ struct Polynomial
 
     return a;
   }
+
+  bool operator<(const Polynomial<T>& other) const
+  {
+    for (size_t i = 0; i < n_terms; i++)
+    {
+      if (i >= other.n_terms)
+      {
+        return false;
+      }
+      if (terms[i] < other.terms[i])
+      {
+        return true;
+      }
+      if (terms[i] > other.terms[i])
+      {
+        return false;
+      }
+    }
+    return n_terms < other.n_terms;
+  }
+
+  bool operator>(const Polynomial<T>& other) const
+  {
+    return other < *this;
+  }
+
+  bool operator==(const Polynomial<T>& other) const
+  {
+    if (n_terms != other.n_terms)
+    {
+      return false;
+    }
+    for (size_t i = 0; i < n_terms; i++)
+    {
+      if (terms[i] != other.terms[i])
+      {
+        return false;
+      }
+    }
+    return true;
+  }
 };
 
 template <typename T>

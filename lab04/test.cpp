@@ -27,7 +27,7 @@ int main()
 
   ReduceWrtNSet(p, ps, RedFlag);
 
-//  GroebnerBasis<double> gb = buchberger({ms, ms + 2});
+//  GroebnerBasis<double> gb = buchberger(ps);
 
   std::cout << "Monomials:\n";
   for ( const auto& m : ms )

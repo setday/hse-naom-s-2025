@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <vector>
 
 #include "groebner_basis.h"
@@ -31,13 +32,12 @@ void ReduceWrtNSet(Polynomial<T>& p, const std::vector<Polynomial<T>>& N, bool& 
     }
 
     // Eliminating the term T from p
-    MonomialPointer<T> U = Term.prev();
-    p = p - (Term->coeff / r.leading_term()->coeff) * (Term.get_val() / r.leading_term().get_val()) * r;
+    p = p - r.leading_term()->coeff * (Term.get_val() / r.leading_term().get_val()) * r;
+    Term.m = p.terms;
+    Term.n = p.n_terms;
     RedFlag = true;
 
-    if (!U->is_zero()) {
-      Term = U.next();
-    } else {
+    if (Term.prev()->is_zero()) {
       Term = p.leading_term();
     }
   }
@@ -73,10 +73,124 @@ void ReduceWrtEachOther(std::vector<Polynomial<T>>& N) {
 }
 
 template <typename T>
-GroebnerBasis<T> buchberger(const std::vector<Monomial<T>>& polys) {
+Polynomial<T> SPoly(const Polynomial<T>& f, const Polynomial<T>& g) {
+  Monomial<T> f_LT_val = f.leading_term().get_val();
+  Monomial<T> g_LT_val = g.leading_term().get_val();
+
+  Monomial<T> LCM = f_LT_val.lcm(g_LT_val);
+
+  Polynomial<T> s = (LCM / f_LT_val) * f - (LCM / g_LT_val) * g;
+
+  return s;
+}
+
+template <typename T>
+bool SkipDt1(const Polynomial<T>& f, const Polynomial<T>& g) {
+  Monomial<T> f_LT_val = f.leading_term().get_val();
+  Monomial<T> g_LT_val = g.leading_term().get_val();
+
+  Monomial<T> LCM = f_LT_val.lcm(g_LT_val);
+
+  return LCM == f_LT_val * g_LT_val;
+}
+
+template <typename T>
+bool SkipDt2(const Polynomial<T>& f, const Polynomial<T>& g, const std::vector<Polynomial<T>>& BG) {
+  Monomial<T> f_LT_val = f.leading_term().get_val();
+  Monomial<T> g_LT_val = g.leading_term().get_val();
+
+  Monomial<T> LCM = f_LT_val.lcm(g_LT_val);
+
+  for (const auto& h : BG) {
+    Monomial<T> h_LT_val = h.leading_term().get_val();
+    if (!h_LT_val.divides(LCM) || h > f)
+    {
+      continue;
+    }
+    if (h < f || f < g)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+template <typename T>
+void GComplete(const std::vector<Polynomial<T>>& G, std::vector<Polynomial<T>>& BG) {
+  BG = G;
+
+  // Normalize each polynomial in BG
+  for (auto& f : BG) {
+    f.normalize();
+  }
+
+  // Reduce BG with respect to each other
+  ReduceWrtEachOther(BG);
+
+  // Initialize the queue of critical pairs
+  std::priority_queue<std::pair<Polynomial<T>, Polynomial<T>>> CP;
+  for (const auto& f : BG) {
+    for (const auto& g : BG) {
+      if (g < f) {
+        CP.push(std::make_pair(f, g));
+      }
+    }
+  }
+
+  // Main critical pairs completion loop
+  while (!CP.empty()) {
+    auto [f, g] = CP.top();
+    CP.pop();
+
+    if (SkipDt2(f, g, BG)) {
+      continue;
+    }
+
+    Polynomial<T> s = SPoly(f, g);
+    bool RedFlag;
+    ReduceWrtNSet(s, BG, RedFlag);
+
+    if (s.is_zero()) {
+      continue;
+    }
+
+    s.normalize();
+
+    bool skip_pair = false;
+    for (const auto& h : BG) {
+      if (h == s) {
+        skip_pair = true;
+        break;
+      }
+    }
+    if (skip_pair) {
+      continue;
+    }
+
+    BG.push_back(s);
+
+    for (const auto& h : BG) {
+      if (!(h == s) && !SkipDt1(h, s) && !SkipDt2(h, s, BG)) {
+        CP.push(std::make_pair(h, s));
+      }
+    }
+  }
+
+  // Reduce the constructed Gröbner basis
+  ReduceWrtEachOther(BG);
+}
+
+template <typename T>
+GroebnerBasis<T> buchberger(const std::vector<Polynomial<T>>& polys) {
   GroebnerBasis<T> basis;
 
+  std::vector<Polynomial<T>> BG;
+  GComplete(polys, BG);
 
+  for (const auto& f : BG) {
+    basis.add(f);
+  }
 
   return basis;
 }

@@ -98,6 +98,19 @@ struct Monomial
     }
     return true;
   }
+
+  Monomial<T> lcm(const Monomial<T>& m) const
+  {
+    T c = coeff * m.coeff;
+    size_t p[MAX_VARS] = {0};
+
+    for (size_t i = 0; i < MAX_VARS; i++)
+    {
+      p[i] = std::max(powers[i], m.powers[i]);
+    }
+
+    return Monomial<T>(c, MAX_VARS, p);
+  }
 };
 
 template <typename T>
@@ -125,6 +138,19 @@ template <typename T>
 bool operator<(const Monomial<T>& zeta, const Monomial<T>& nu)
 {
   return nu > zeta;
+}
+
+template <typename T>
+bool operator==(const Monomial<T>& zeta, const Monomial<T>& nu)
+{
+  for (size_t i = 0; i < MAX_VARS; i++)
+  {
+    if (zeta.powers[i] != nu.powers[i])
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 template <typename T>
